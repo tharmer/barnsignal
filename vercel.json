@@ -1,0 +1,26 @@
+{
+  "buildCommand": "npm run build",
+  "installCommand": "npm install",
+  "builds": [
+    {
+      "src": "dist/index.js",
+      "use": "@vercel/node",
+      "config": {
+        "maxDuration": 120
+      }
+    }
+  ],
+  "routes": [
+    { "src": "/(.*)", "dest": "dist/index.js" }
+  ],
+  "crons": [
+    {
+      "path": "/api/cron/fetch",
+      "schedule": "0 20 * * 1,2,4"
+    },
+    {
+      "path": "/api/cron/predict",
+      "schedule": "0 21 * * 1,2,4"
+    }
+  ]
+}

@@ -1,0 +1,26 @@
+{
+  "name": "barnsignal",
+  "version": "1.0.0",
+  "description": "Cross-auction livestock price intelligence for Lancaster County PA and beyond",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx watch src/index.ts",
+    "fetch": "tsx src/run-fetch.ts",
+    "predict": "tsx src/run-predict.ts",
+    "scan": "tsx src/run-fetch.ts && tsx src/run-predict.ts"
+  },
+  "private": true,
+  "dependencies": {
+    "@upstash/redis": "^1.37.0",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.0",
+    "pdf-parse": "^1.1.1"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/node": "^22.0.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.9.3"
+  }
+}
