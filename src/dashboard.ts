@@ -133,7 +133,7 @@ export async function renderDashboard(): Promise<string> {
   }
   .ticker-inner {
     display: inline-block;
-    animation: ticker-scroll 80s linear infinite;
+    animation: ticker-scroll 200s linear infinite;
   }
   .ticker-item {
     display: inline-block;
