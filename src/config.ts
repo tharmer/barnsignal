@@ -87,26 +87,9 @@ export const BARNS: AuctionBarn[] = [
     pdfUrl: "https://www.ams.usda.gov/mnreports/ams_1870.pdf",
   },
   // ── Virginia ──
-  {
-    reportId: 2173,
-    name: "Fauquier Livestock Exchange Graded Feeder Cattle Sale",
-    shortName: "Fauquier (VA)",
-    location: "Marshall, VA",
-    lat: 38.8651, lng: -77.8578,
-    auctionDays: ["Monthly"],
-    categories: ["feeder_cattle"],
-    pdfUrl: "https://www.ams.usda.gov/mnreports/ams_2173.pdf",
-  },
-  {
-    reportId: 2175,
-    name: "Farmers Livestock Exchange Graded Feeder Cattle Sale",
-    shortName: "Winchester (VA)",
-    location: "Winchester, VA",
-    lat: 39.1857, lng: -78.1633,
-    auctionDays: ["Monthly"],
-    categories: ["feeder_cattle"],
-    pdfUrl: "https://www.ams.usda.gov/mnreports/ams_2175.pdf",
-  },
+  // Fauquier (2173) and Winchester (2175) are graded feeder cattle sales
+  // with a different PDF format (Medium/Large 1-2 vs Choice/Select grading).
+  // Parser needs feeder-cattle support before these can be added back.
   // ── West Virginia ──
   {
     reportId: 1872,
@@ -173,11 +156,8 @@ export const REGIONS: Region[] = [
     name: "South-Central PA / MD",
     reportIds: [1917, 1920, 1918, 1870],  // Greencastle Mon/Thu, Middleburg, Four States MD
   },
-  {
-    id: "shenandoah",
-    name: "Shenandoah Valley",
-    reportIds: [2173, 2175],  // Fauquier, Winchester
-  },
+  // Shenandoah Valley region paused until feeder cattle parser is built
+  // { id: "shenandoah", name: "Shenandoah Valley", reportIds: [2173, 2175] },
   {
     id: "wv",
     name: "West Virginia",
