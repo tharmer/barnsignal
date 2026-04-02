@@ -560,14 +560,19 @@ ${renderTicker(activeBarns)}
     <div class="hero-text">
       <h2>Know before you go &mdash; compare barns, spot trends, and time your buy.</h2>
       <p>BarnSignal tracks real-time livestock auction prices from USDA-reported sales across Pennsylvania, Maryland, Virginia, West Virginia, and New York. Cross-auction comparison, AI-powered price predictions, and weekly trend analysis &mdash; all in one place.</p>
-      <p class="audience">Built for livestock buyers, meat distributors, auction regulars, and ag professionals.</p>
+      <p class="audience">Tracking ${activeBarns.reduce((s, b) => s + b.totalReceipts, 0).toLocaleString()}+ head across ${BARNS.length} barns this week. Built for livestock buyers, distributors, and auction regulars.</p>
     </div>
     <div class="hero-cta">
       <div class="cta-box">
-        <div class="cta-label">Get Daily Price Alerts</div>
+        <div class="cta-label">Get Price Alerts &mdash; Free During Launch</div>
+        <div style="font-size:0.82em; color:var(--ink-light); margin-bottom:10px; line-height:1.4;">${activeRegion === "all"
+          ? "Alerts from <strong>all 12 barns</strong> across 5 states."
+          : "Alerts for <strong>" + regionLabel + "</strong> barns only."}</div>
         <input type="email" placeholder="your@email.com" id="cta-email" />
         <button class="cta-btn" id="cta-btn" onclick="submitSignup()">Sign Up Free</button>
-        <div class="cta-note" id="cta-note">No spam. Auction-day alerts only.</div>
+        <div class="cta-note" id="cta-note">${activeRegion === "all"
+          ? "You'll get updates from every region. Pick a region above to narrow it down."
+          : "Auction-day alerts only. No spam."}</div>
       </div>
     </div>
   </div>
