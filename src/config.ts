@@ -32,24 +32,6 @@ export const BARNS: AuctionBarn[] = [
     pdfUrl: "https://www.ams.usda.gov/mnreports/ams_1909.pdf",
   },
   {
-    reportId: 1913,
-    name: "New Holland Sheep and Goat Auction",
-    shortName: "NH Sheep/Goat",
-    location: "New Holland, PA",
-    auctionDays: ["Monday"],
-    categories: ["sheep", "goats"],
-    pdfUrl: "https://www.ams.usda.gov/mnreports/ams_1913.pdf",
-  },
-  {
-    reportId: 1915,
-    name: "Vintage Livestock Auction (Tuesday)",
-    shortName: "Vintage (Tue)",
-    location: "Paradise, PA",
-    auctionDays: ["Tuesday"],
-    categories: ["slaughter_cattle", "feeder_cattle"],
-    pdfUrl: "https://www.ams.usda.gov/mnreports/ams_1915.pdf",
-  },
-  {
     reportId: 1916,
     name: "Vintage Livestock Auction (Monday)",
     shortName: "Vintage (Mon)",
@@ -84,15 +66,6 @@ export const BARNS: AuctionBarn[] = [
     auctionDays: ["Thursday"],
     categories: ["slaughter_cattle", "feeder_cattle"],
     pdfUrl: "https://www.ams.usda.gov/mnreports/ams_1920.pdf",
-  },
-  {
-    reportId: 1924,
-    name: "Vintage Feeder Cattle Sale",
-    shortName: "Vintage Feeder",
-    location: "Paradise, PA",
-    auctionDays: ["Monthly"],
-    categories: ["feeder_cattle"],
-    pdfUrl: "https://www.ams.usda.gov/mnreports/ams_1924.pdf",
   },
   // ── Maryland ──
   {
@@ -179,7 +152,7 @@ export const REGIONS: Region[] = [
   {
     id: "lancaster",
     name: "Lancaster / Chester Co.",
-    reportIds: [1908, 1909, 1913, 1915, 1916, 1924],  // NH Mon/Thu, NH Sheep, Vintage Tue/Mon, Vintage Feeder
+    reportIds: [1908, 1909, 1916],  // NH Mon/Thu, Vintage Mon
   },
   {
     id: "south-central-pa",

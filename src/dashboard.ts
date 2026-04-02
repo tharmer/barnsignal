@@ -76,10 +76,10 @@ export async function renderDashboard(activeRegion: string = "all"): Promise<str
   .header-top {
     max-width: 1200px;
     margin: 0 auto;
-    padding: 20px 24px 0;
+    padding: 16px 24px;
     display: flex;
     justify-content: space-between;
-    align-items: flex-start;
+    align-items: center;
   }
   .logo-area h1 {
     font-size: 2em;
@@ -111,25 +111,6 @@ export async function renderDashboard(activeRegion: string = "all"): Promise<str
     0%, 100% { opacity: 1; }
     50% { opacity: 0.4; }
   }
-  .header-nav {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 16px 24px 0;
-    display: flex;
-    gap: 0;
-  }
-  .header-nav a {
-    color: #a09880;
-    text-decoration: none;
-    padding: 10px 20px;
-    font-size: 0.88em;
-    font-weight: 500;
-    border-bottom: 2px solid transparent;
-    transition: all 0.2s;
-  }
-  .header-nav a:hover { color: var(--parchment); border-bottom-color: var(--wheat); }
-  .header-nav a.active { color: var(--parchment); border-bottom-color: var(--wheat); }
-
   /* ── Ticker ── */
   .ticker {
     background: #1a1610;
@@ -560,12 +541,6 @@ export async function renderDashboard(activeRegion: string = "all"): Promise<str
       <div style="margin-top:4px;">${new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}</div>
     </div>
   </div>
-  <nav class="header-nav">
-    <a href="#" class="active">Dashboard</a>
-    <a href="#">Livestock</a>
-    <a href="#">AI Signals</a>
-    <a href="#">Accuracy</a>
-  </nav>
 </header>
 
 ${renderTicker(activeBarns)}
