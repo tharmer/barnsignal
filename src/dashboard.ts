@@ -28,275 +28,456 @@ export async function renderDashboard(): Promise<string> {
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BarnSignal — Your Signal Before the Sale</title>
+<title>BarnSignal — Lancaster County Agricultural Intelligence</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
-  :root {
-    --barn-red: #8B2500;
-    --barn-red-light: #A0522D;
-    --field-green: #2E5A1E;
-    --field-green-light: #4A7C34;
-    --wheat: #F5DEB3;
-    --wheat-dark: #D2B48C;
-    --parchment: #FDF5E6;
-    --dark-earth: #3B2F2F;
-    --cream: #FFFDD0;
-  }
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  body {
-    font-family: Georgia, 'Times New Roman', serif;
-    background: var(--parchment);
-    color: var(--dark-earth);
+
+  :root {
+    --parchment: #f5f0e8;
+    --parchment-dark: #e8e0d0;
+    --ink: #2c2416;
+    --ink-light: #5a4e3a;
+    --ink-muted: #8a7e6a;
+    --barn-red: #8b2500;
+    --barn-red-light: #a83a15;
+    --field-green: #3a6b35;
+    --field-green-light: #4a8b45;
+    --wheat: #c4a55a;
+    --wheat-light: #d4b56a;
+    --sky: #4a7fa5;
+    --soil: #6b5344;
+    --border: #d4cbb8;
+    --card-bg: #faf7f0;
+    --shadow: rgba(44, 36, 22, 0.08);
   }
-  .header {
-    background: linear-gradient(135deg, var(--barn-red) 0%, var(--dark-earth) 100%);
-    color: var(--wheat);
-    padding: 1.5rem 2rem;
+
+  body {
+    font-family: 'DM Sans', Georgia, serif;
+    background: var(--parchment);
+    color: var(--ink);
+    line-height: 1.6;
+  }
+
+  /* ── Header ── */
+  header {
+    background: var(--ink);
+    color: var(--parchment);
+    padding: 0;
+  }
+  .header-top {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px 24px 0;
     display: flex;
     justify-content: space-between;
-    align-items: center;
+    align-items: flex-start;
   }
-  .header h1 { font-size: 1.8rem; letter-spacing: 1px; }
-  .header h1 span { color: var(--wheat-dark); font-weight: normal; font-size: 0.9rem; display: block; }
-  .header .date { font-size: 0.9rem; opacity: 0.8; }
+  .logo-area h1 {
+    font-size: 2em;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    line-height: 1;
+  }
+  .logo-area h1 span { color: var(--wheat); }
+  .logo-area .tagline {
+    font-size: 0.85em;
+    color: #a09880;
+    margin-top: 4px;
+    font-style: italic;
+  }
+  .header-meta {
+    text-align: right;
+    font-size: 0.82em;
+    color: #a09880;
+  }
+  .header-meta .live-dot {
+    display: inline-block;
+    width: 8px; height: 8px;
+    background: var(--field-green-light);
+    border-radius: 50%;
+    margin-right: 6px;
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+  .header-nav {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 16px 24px 0;
+    display: flex;
+    gap: 0;
+  }
+  .header-nav a {
+    color: #a09880;
+    text-decoration: none;
+    padding: 10px 20px;
+    font-size: 0.88em;
+    font-weight: 500;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+  }
+  .header-nav a:hover { color: var(--parchment); border-bottom-color: var(--wheat); }
+  .header-nav a.active { color: var(--parchment); border-bottom-color: var(--wheat); }
+
+  /* ── Ticker ── */
   .ticker {
-    background: var(--dark-earth);
-    color: var(--wheat);
-    padding: 0.5rem 0;
+    background: #1a1610;
+    padding: 10px 0;
     overflow: hidden;
     white-space: nowrap;
-    font-family: 'Courier New', monospace;
-    font-size: 0.85rem;
+    border-bottom: 2px solid var(--wheat);
   }
   .ticker-inner {
     display: inline-block;
-    animation: scroll 40s linear infinite;
+    animation: ticker-scroll 80s linear infinite;
   }
-  @keyframes scroll {
-    0% { transform: translateX(100vw); }
-    100% { transform: translateX(-100%); }
+  .ticker-item {
+    display: inline-block;
+    margin-right: 40px;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.82em;
+    color: #c0b8a0;
   }
-  .ticker .up { color: #4CAF50; }
-  .ticker .down { color: #f44336; }
-  .ticker .flat { color: #FFC107; }
-  .container { max-width: 1400px; margin: 0 auto; padding: 1.5rem; }
+  .ticker-item .name { color: var(--wheat); font-weight: 500; }
+  .ticker-item .up { color: var(--field-green-light); }
+  .ticker-item .down { color: var(--barn-red-light); }
+  .ticker-item .neutral { color: var(--ink-muted); }
+  @keyframes ticker-scroll {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+  }
 
-  /* Stats cards */
-  .stats-row {
+  /* ── Container ── */
+  .container { max-width: 1200px; margin: 0 auto; padding: 24px; }
+
+  /* ── Alert Banner ── */
+  .alert-banner {
+    background: var(--card-bg);
+    border: 1px solid var(--wheat);
+    border-left: 4px solid var(--wheat);
+    border-radius: 6px;
+    padding: 16px 20px;
+    margin-bottom: 24px;
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+  }
+  .alert-banner .alert-icon { font-size: 1.4em; flex-shrink: 0; }
+  .alert-banner .alert-text { font-size: 0.92em; line-height: 1.5; }
+  .alert-banner .alert-text strong { color: var(--barn-red); }
+  .alert-banner .alert-time { font-size: 0.78em; color: var(--ink-muted); margin-top: 4px; }
+
+  /* ── Section Headers ── */
+  .section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 16px;
+    margin-top: 32px;
+    border-bottom: 2px solid var(--ink);
+    padding-bottom: 8px;
+  }
+  .section-header h2 {
+    font-size: 1.2em;
+    font-weight: 700;
+    letter-spacing: -0.3px;
+  }
+  .section-header .source {
+    font-size: 0.75em;
+    color: var(--ink-muted);
+    font-style: italic;
+  }
+
+  /* ── Stats Grid ── */
+  .stats-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 1rem;
-    margin-bottom: 1.5rem;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 14px;
+    margin-bottom: 28px;
   }
   .stat-card {
-    background: white;
-    border: 1px solid var(--wheat-dark);
+    background: var(--card-bg);
+    border: 1px solid var(--border);
     border-radius: 8px;
-    padding: 1.2rem;
-    text-align: center;
+    padding: 16px;
   }
-  .stat-card .value {
-    font-size: 2rem;
-    font-weight: bold;
-    color: var(--barn-red);
+  .stat-card .stat-label {
+    font-size: 0.75em;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--ink-muted);
+    font-weight: 600;
   }
-  .stat-card .label {
-    font-size: 0.8rem;
-    color: #666;
+  .stat-card .stat-value {
+    font-size: 1.8em;
+    font-weight: 700;
+    font-family: 'DM Mono', monospace;
+    line-height: 1.2;
+    margin-top: 4px;
+  }
+  .stat-card .stat-change {
+    font-size: 0.82em;
+    margin-top: 4px;
+    font-weight: 500;
+  }
+  .stat-card .stat-change.up { color: var(--field-green); }
+  .stat-card .stat-change.down { color: var(--barn-red); }
+  .stat-card .stat-value.green { color: var(--field-green); }
+  .stat-card .stat-value.red { color: var(--barn-red); }
+
+  /* ── Price Tables ── */
+  .price-table-wrap {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    margin-bottom: 16px;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.88em;
+  }
+  th {
+    background: var(--ink);
+    color: var(--parchment);
+    text-align: left;
+    padding: 10px 14px;
+    font-size: 0.78em;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    font-weight: 600;
+  }
+  td {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+  }
+  tr:last-child td { border-bottom: none; }
+  tr:hover { background: var(--parchment); }
+  .category-cell { font-weight: 600; color: var(--ink); }
+  .price-cell { font-family: 'DM Mono', monospace; font-weight: 500; }
+  .trend-up { color: var(--field-green); }
+  .trend-down { color: var(--barn-red); }
+  .trend-neutral { color: var(--ink-muted); }
+
+  /* ── Badges ── */
+  .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.78em;
+    font-weight: 600;
+  }
+  .badge-correct { background: #e8f5e3; color: var(--field-green); border: 1px solid #b8d8b0; }
+  .badge-wrong { background: #fde8e4; color: var(--barn-red); border: 1px solid #e8b8b0; }
+  .badge-pending { background: #f0ead8; color: var(--soil); border: 1px solid var(--border); }
+  .badge-watch { background: #e4eef5; color: var(--sky); border: 1px solid #b0c8d8; }
+
+  /* ── Insight Cards ── */
+  .insights-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+    gap: 16px;
+    margin-bottom: 28px;
+  }
+  .insight-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px;
+  }
+  .insight-card .insight-type {
+    font-size: 0.72em;
     text-transform: uppercase;
     letter-spacing: 1px;
-    margin-top: 0.3rem;
+    font-weight: 600;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
   }
-  .stat-card.green .value { color: var(--field-green); }
-
-  /* Section headers */
-  .section-header {
-    font-size: 1.3rem;
-    color: var(--barn-red);
-    border-bottom: 2px solid var(--wheat-dark);
-    padding-bottom: 0.5rem;
-    margin: 1.5rem 0 1rem;
+  .insight-card .insight-type.opportunity { color: var(--field-green); }
+  .insight-card .insight-type.warning { color: var(--barn-red); }
+  .insight-card .insight-type.trend { color: var(--sky); }
+  .insight-card h3 { font-size: 1.05em; margin-bottom: 8px; line-height: 1.3; }
+  .insight-card p { font-size: 0.88em; color: var(--ink-light); line-height: 1.5; }
+  .insight-card .confidence { margin-top: 12px; font-size: 0.78em; color: var(--ink-muted); }
+  .confidence-bar {
+    height: 4px;
+    background: var(--parchment-dark);
+    border-radius: 2px;
+    margin-top: 4px;
+    overflow: hidden;
   }
+  .confidence-fill { height: 100%; border-radius: 2px; }
 
-  /* Barn comparison table */
+  /* ── Commentary ── */
+  .commentary {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--field-green);
+    border-radius: 0 8px 8px 0;
+    padding: 16px 20px;
+    margin: 12px 0;
+    font-size: 0.9em;
+    line-height: 1.6;
+  }
+  .commentary strong { color: var(--ink); }
+  .commentary .comm-date { color: var(--ink-muted); font-size: 0.85em; }
+
+  /* ── Barn Cards ── */
   .barn-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
-    gap: 1.5rem;
-    margin-bottom: 1.5rem;
+    gap: 16px;
+    margin-bottom: 28px;
   }
   .barn-card {
-    background: white;
-    border: 1px solid var(--wheat-dark);
+    background: var(--card-bg);
+    border: 1px solid var(--border);
     border-radius: 8px;
     overflow: hidden;
   }
   .barn-card-header {
     background: var(--field-green);
     color: white;
-    padding: 0.8rem 1rem;
+    padding: 12px 16px;
     display: flex;
     justify-content: space-between;
     align-items: center;
   }
-  .barn-card-header h3 { font-size: 1rem; }
-  .barn-card-header .meta { font-size: 0.8rem; opacity: 0.8; }
-  .barn-card-body { padding: 0; }
+  .barn-card-header h3 { font-size: 1rem; font-weight: 600; }
+  .barn-card-header .meta { font-size: 0.8rem; opacity: 0.85; }
 
-  /* Price table */
-  table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 0.85rem;
-  }
-  th {
-    background: var(--cream);
-    padding: 0.5rem;
-    text-align: left;
-    font-size: 0.75rem;
-    text-transform: uppercase;
-    color: #666;
-    border-bottom: 1px solid var(--wheat-dark);
-  }
-  td {
-    padding: 0.4rem 0.5rem;
-    border-bottom: 1px solid #f0e8d8;
-  }
-  tr:hover { background: var(--cream); }
-  .price { font-weight: bold; font-family: 'Courier New', monospace; }
-  .change-up { color: #2E7D32; }
-  .change-down { color: #C62828; }
-  .change-flat { color: #F57F17; }
+  /* ── Predictions Table ── */
+  .pred-up { background: #f0f7ee; }
+  .pred-down { background: #fdf2ef; }
+  .pred-flat { background: #f5f2e8; }
 
-  /* Predictions section */
-  .predictions-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 0.85rem;
-    background: white;
-    border: 1px solid var(--wheat-dark);
-    border-radius: 8px;
-    overflow: hidden;
-  }
-  .predictions-table th {
-    background: var(--barn-red);
-    color: white;
-    padding: 0.6rem;
-  }
-  .predictions-table td { padding: 0.5rem 0.6rem; }
-  .pred-up { background: #E8F5E9; }
-  .pred-down { background: #FFEBEE; }
-  .pred-flat { background: #FFF8E1; }
-  .confidence-bar {
-    display: inline-block;
-    height: 8px;
-    border-radius: 4px;
-    margin-right: 0.5rem;
-    vertical-align: middle;
-  }
-  .badge {
-    display: inline-block;
-    padding: 2px 8px;
-    border-radius: 12px;
-    font-size: 0.75rem;
-    font-weight: bold;
-  }
-  .badge-correct { background: #C8E6C9; color: #2E7D32; }
-  .badge-wrong { background: #FFCDD2; color: #C62828; }
-  .badge-pending { background: #FFF9C4; color: #F57F17; }
+  /* ── Best Price ── */
+  .best-price { background: #e8f5e3; font-weight: 600; }
 
-  /* Commentary */
-  .commentary {
-    background: white;
-    border-left: 4px solid var(--field-green);
-    padding: 1rem 1.2rem;
-    margin: 1rem 0;
+  /* ── Footer ── */
+  footer {
+    background: var(--ink);
+    color: #a09880;
+    padding: 32px 24px;
+    margin-top: 40px;
+    font-size: 0.82em;
+  }
+  footer .footer-inner {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 20px;
+  }
+  footer a { color: var(--wheat); text-decoration: none; }
+  footer .disclaimer {
+    max-width: 600px;
+    font-size: 0.88em;
+    line-height: 1.5;
     font-style: italic;
-    font-size: 0.9rem;
-    line-height: 1.6;
-    border-radius: 0 8px 8px 0;
   }
 
-  /* Cross-auction comparison */
-  .comparison-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 0.85rem;
-    background: white;
-    border: 1px solid var(--wheat-dark);
-    border-radius: 8px;
-    overflow: hidden;
-  }
-  .comparison-table th {
-    background: var(--dark-earth);
-    color: var(--wheat);
-    padding: 0.6rem;
-  }
-  .comparison-table td { padding: 0.5rem 0.6rem; }
-  .best-price { background: #E8F5E9; font-weight: bold; }
-
-  /* Footer */
-  .footer {
-    text-align: center;
-    padding: 2rem;
-    color: #999;
-    font-size: 0.8rem;
-    border-top: 1px solid var(--wheat-dark);
-    margin-top: 2rem;
-  }
-
-  /* Mobile */
+  /* ── Responsive ── */
   @media (max-width: 768px) {
+    .header-top { flex-direction: column; }
+    .header-meta { text-align: left; margin-top: 10px; }
+    .insights-grid { grid-template-columns: 1fr; }
+    .stats-grid { grid-template-columns: repeat(2, 1fr); }
     .barn-grid { grid-template-columns: 1fr; }
-    .stats-row { grid-template-columns: repeat(2, 1fr); }
-    .header h1 { font-size: 1.3rem; }
-    .container { padding: 1rem; }
+    .container { padding: 16px; }
+    .logo-area h1 { font-size: 1.5em; }
   }
 </style>
 </head>
 <body>
 
-<div class="header">
-  <h1>BarnSignal<span>Your signal before the sale.</span></h1>
-  <div class="date">${new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}</div>
-</div>
+<header>
+  <div class="header-top">
+    <div class="logo-area">
+      <h1>Barn<span>Signal</span></h1>
+      <div class="tagline">Your signal before the sale.</div>
+    </div>
+    <div class="header-meta">
+      <div><span class="live-dot"></span> Live data from USDA &amp; Lancaster County auctions</div>
+      <div style="margin-top:4px;">${new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}</div>
+    </div>
+  </div>
+  <nav class="header-nav">
+    <a href="#" class="active">Dashboard</a>
+    <a href="#">Livestock</a>
+    <a href="#">AI Signals</a>
+    <a href="#">Accuracy</a>
+  </nav>
+</header>
 
 ${renderTicker(activeBarns)}
 
 <div class="container">
 
+${renderAlertBanner(activeBarns)}
+
 ${renderStatsCards(activeBarns, stats)}
 
 ${activeBarns.length > 0 ? renderMarketCommentary(activeBarns) : ""}
 
-<h2 class="section-header">🏛️ Cross-Auction Price Comparison</h2>
+<div class="section-header">
+  <h2>Cross-Auction Price Comparison</h2>
+  <span class="source">Data: USDA AMS Market News</span>
+</div>
 ${activeBarns.length >= 2 ? renderCrossAuctionComparison(activeBarns) : "<p>Collecting data from multiple barns... cross-auction comparison will appear after the next auction cycle.</p>"}
 
-<h2 class="section-header">🔮 AI Price Predictions</h2>
+<div class="section-header">
+  <h2>AI Price Predictions</h2>
+  <span class="source">Rule-based signal engine</span>
+</div>
 ${renderPredictions(predictions)}
 
-<h2 class="section-header">📊 Auction Barn Reports</h2>
+<div class="section-header">
+  <h2>Auction Barn Reports</h2>
+  <span class="source">Most recent sale data</span>
+</div>
 <div class="barn-grid">
 ${activeBarns.map((b) => renderBarnCard(b)).join("\n")}
 </div>
 
 ${activeBarns.length === 0 ? `
-<div style="text-align:center; padding:3rem; color:#999;">
+<div style="text-align:center; padding:3rem; color:var(--ink-muted);">
   <h3>Waiting for first data fetch...</h3>
   <p>Auction data will appear after the next scheduled fetch (Mon/Tue/Thu evenings).</p>
-  <p>Or trigger manually: <code>POST /api/fetch</code></p>
+  <p style="margin-top:0.5rem;">Or trigger manually: <code>POST /api/fetch</code></p>
 </div>
 ` : ""}
 
-<h2 class="section-header">🎯 Prediction Accuracy</h2>
+<div class="section-header">
+  <h2>Prediction Accuracy</h2>
+  <span class="source">Running track record</span>
+</div>
 ${renderAccuracy(stats)}
 
 </div>
 
-<div class="footer">
-  BarnSignal v1.0 — Lancaster County Livestock Price Intelligence<br>
-  Data source: USDA AMS Livestock, Poultry & Grain Market News<br>
-  Predictions are AI-generated estimates, not financial advice.
-</div>
+<footer>
+  <div class="footer-inner">
+    <div>
+      <strong style="color:var(--parchment);">BarnSignal</strong> v1.0<br>
+      Lancaster County Livestock Price Intelligence<br>
+      <a href="https://github.com/tharmer/barnsignal">GitHub</a>
+    </div>
+    <div class="disclaimer">
+      Data source: USDA AMS Livestock, Poultry &amp; Grain Market News.<br>
+      Predictions are AI-generated estimates, not financial advice.
+    </div>
+  </div>
+</footer>
 
 </body>
 </html>`;
@@ -307,15 +488,39 @@ function renderTicker(barns: AuctionEntry[]): string {
 
   const items: string[] = [];
   for (const barn of barns) {
-    for (const cat of barn.categories.filter((c) => c.dressing === "Average").slice(0, 5)) {
-      const arrow = "→";
+    const shortName = barn.barnName.replace("New Holland", "NH").replace("Vintage", "Vint.");
+    for (const cat of barn.categories.filter((c) => c.dressing === "Average").slice(0, 6)) {
+      const priceStr = `$${cat.avgPrice.toFixed(0)}/cwt`;
       items.push(
-        `${barn.barnName} | ${cat.category}: <span class="flat">$${cat.avgPrice.toFixed(2)}/cwt</span> (${cat.head} hd) ${arrow}`
+        `<span class="ticker-item"><span class="name">${shortName}</span> ${cat.category}: <span class="neutral">${priceStr}</span> (${cat.head} hd)</span>`
       );
     }
   }
 
-  return `<div class="ticker"><div class="ticker-inner">${items.join("&nbsp;&nbsp;&nbsp;●&nbsp;&nbsp;&nbsp;")}</div></div>`;
+  // Duplicate items for seamless loop
+  const allItems = items.join("") + items.join("");
+  return `<div class="ticker"><div class="ticker-inner">${allItems}</div></div>`;
+}
+
+function renderAlertBanner(barns: AuctionEntry[]): string {
+  // Generate a market alert from the latest commentary
+  const latestBarn = barns.find((b) => b.marketCommentary);
+  if (!latestBarn) return "";
+
+  // Extract key trend from commentary
+  const commentary = latestBarn.marketCommentary;
+  let alertText = commentary;
+  if (commentary.length > 200) {
+    alertText = commentary.substring(0, 200) + "...";
+  }
+
+  return `<div class="alert-banner">
+  <div class="alert-icon">&#x1F4CA;</div>
+  <div>
+    <div class="alert-text"><strong>${latestBarn.barnName}</strong> (${latestBarn.reportDate}): ${alertText}</div>
+    <div class="alert-time">Latest market report</div>
+  </div>
+</div>`;
 }
 
 function renderStatsCards(barns: AuctionEntry[], stats: AccuracyStats): string {
@@ -323,43 +528,43 @@ function renderStatsCards(barns: AuctionEntry[], stats: AccuracyStats): string {
   const totalCategories = barns.reduce((sum, b) => sum + b.categories.length, 0);
 
   return `
-<div class="stats-row">
+<div class="stats-grid">
   <div class="stat-card">
-    <div class="value">${barns.length}</div>
-    <div class="label">Auction Barns Tracked</div>
+    <div class="stat-label">Auction Barns</div>
+    <div class="stat-value">${barns.length}</div>
   </div>
   <div class="stat-card">
-    <div class="value">${totalHead.toLocaleString()}</div>
-    <div class="label">Head This Week</div>
+    <div class="stat-label">Head This Week</div>
+    <div class="stat-value">${totalHead.toLocaleString()}</div>
   </div>
   <div class="stat-card">
-    <div class="value">${totalCategories}</div>
-    <div class="label">Price Categories</div>
-  </div>
-  <div class="stat-card green">
-    <div class="value">${stats.totalPredictions > 0 ? stats.accuracy + "%" : "—"}</div>
-    <div class="label">AI Prediction Accuracy</div>
+    <div class="stat-label">Price Categories</div>
+    <div class="stat-value">${totalCategories}</div>
   </div>
   <div class="stat-card">
-    <div class="value">${stats.totalPredictions}</div>
-    <div class="label">Predictions Made</div>
+    <div class="stat-label">AI Accuracy</div>
+    <div class="stat-value ${stats.accuracy >= 60 ? "green" : stats.accuracy > 0 ? "red" : ""}">${stats.totalPredictions > 0 ? stats.accuracy + "%" : "\u2014"}</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Predictions</div>
+    <div class="stat-value">${stats.totalPredictions}</div>
   </div>
 </div>`;
 }
 
 function renderMarketCommentary(barns: AuctionEntry[]): string {
-  const commentaries = barns
-    .filter((b) => b.marketCommentary)
-    .map(
-      (b) =>
-        `<div class="commentary"><strong>${b.barnName}</strong> (${b.reportDate}): ${b.marketCommentary}</div>`
-    );
+  const commentaries = barns.filter((b) => b.marketCommentary);
   if (commentaries.length === 0) return "";
-  return `<h2 class="section-header">📝 Market Commentary</h2>${commentaries.join("\n")}`;
+
+  const html = commentaries.map(
+    (b) =>
+      `<div class="commentary"><strong>${b.barnName}</strong> <span class="comm-date">(${b.reportDate})</span><br>${b.marketCommentary}</div>`
+  );
+
+  return `<div class="section-header"><h2>Market Commentary</h2><span class="source">USDA Market Reports</span></div>${html.join("\n")}`;
 }
 
 function renderCrossAuctionComparison(barns: AuctionEntry[]): string {
-  // Find categories that exist in multiple barns
   const categoryMap = new Map<string, { barn: string; avgPrice: number; head: number }[]>();
 
   for (const barn of barns) {
@@ -373,13 +578,11 @@ function renderCrossAuctionComparison(barns: AuctionEntry[]): string {
     }
   }
 
-  // Only show categories with data from 2+ barns
   const sharedCategories = [...categoryMap.entries()]
     .filter(([_, data]) => data.length >= 2)
     .slice(0, 15);
 
   if (sharedCategories.length === 0) {
-    // Show single-barn data as a preview
     const cats = barns.flatMap((b) =>
       b.categories
         .filter((c) => c.dressing === "Average")
@@ -387,11 +590,11 @@ function renderCrossAuctionComparison(barns: AuctionEntry[]): string {
         .map((c) => ({ barn: b.barnName, ...c }))
     );
 
-    return `<table class="comparison-table">
+    return `<div class="price-table-wrap"><table>
 <tr><th>Category</th><th>Barn</th><th>Avg Price</th><th>Head</th></tr>
-${cats.map((c) => `<tr><td>${c.category}</td><td>${c.barn}</td><td class="price">$${c.avgPrice.toFixed(2)}</td><td>${c.head}</td></tr>`).join("\n")}
-</table>
-<p style="font-size:0.8rem; color:#999; margin-top:0.5rem;">Full cross-auction comparison unlocks when we have data from multiple barns for the same categories.</p>`;
+${cats.map((c) => `<tr><td class="category-cell">${c.category}</td><td>${c.barn}</td><td class="price-cell">$${c.avgPrice.toFixed(2)}</td><td>${c.head}</td></tr>`).join("\n")}
+</table></div>
+<p style="font-size:0.8rem; color:var(--ink-muted); margin-top:0.5rem;">Full cross-auction comparison unlocks when we have data from multiple barns for the same categories.</p>`;
   }
 
   const barnNames = [...new Set(barns.map((b) => b.barnName))];
@@ -403,24 +606,24 @@ ${cats.map((c) => `<tr><td>${c.category}</td><td>${c.barn}</td><td class="price"
     const maxPrice = Math.max(...prices);
     const spread = maxPrice - minPrice;
 
-    rows += `<tr><td>${category}</td>`;
+    rows += `<tr><td class="category-cell">${category}</td>`;
     for (const barnName of barnNames) {
       const barnData = data.find((d) => d.barn === barnName);
       if (barnData) {
         const isBest = barnData.avgPrice === maxPrice && spread > 1;
-        rows += `<td class="${isBest ? "best-price" : ""} price">$${barnData.avgPrice.toFixed(2)} <span style="font-size:0.7rem;color:#999">(${barnData.head} hd)</span></td>`;
+        rows += `<td class="${isBest ? "best-price" : ""} price-cell">$${barnData.avgPrice.toFixed(2)} <span style="font-size:0.72em;color:var(--ink-muted)">(${barnData.head} hd)</span></td>`;
       } else {
-        rows += `<td style="color:#ccc">—</td>`;
+        rows += `<td style="color:var(--border)">\u2014</td>`;
       }
     }
-    rows += `<td class="price" style="color:${spread > 5 ? "var(--barn-red)" : "#999"}">$${spread.toFixed(2)}</td></tr>`;
+    rows += `<td class="price-cell" style="color:${spread > 5 ? "var(--barn-red)" : "var(--ink-muted)"}">$${spread.toFixed(2)}</td></tr>`;
   }
 
-  return `<table class="comparison-table">
+  return `<div class="price-table-wrap"><table>
 <tr><th>Category</th>${barnNames.map((n) => `<th>${n}</th>`).join("")}<th>Spread</th></tr>
 ${rows}
-</table>
-<p style="font-size:0.8rem; color:#999; margin-top:0.5rem;">💡 Green highlight = highest price at that barn. Spread shows the price gap between barns — larger spreads may indicate arbitrage opportunity factoring in trucking costs.</p>`;
+</table></div>
+<p style="font-size:0.78em; color:var(--ink-muted); margin-top:8px; font-style:italic;">Green highlight = highest price at that barn. Spread shows the price gap between barns \u2014 larger spreads may indicate arbitrage opportunity factoring in trucking costs.</p>`;
 }
 
 function renderBarnCard(barn: AuctionEntry): string {
@@ -434,109 +637,115 @@ function renderBarnCard(barn: AuctionEntry): string {
     <h3>${barn.barnName}</h3>
     <div class="meta">${barn.location} | ${barn.reportDate} | ${barn.totalReceipts.toLocaleString()} head</div>
   </div>
-  <div class="barn-card-body">
-    <table>
-      <tr><th>Category</th><th>Head</th><th>Wt Range</th><th>Avg Price</th></tr>
-      ${topCategories
-        .map(
-          (c) =>
-            `<tr><td>${c.category}</td><td>${c.head}</td><td>${c.wtRange} lbs</td><td class="price">$${c.avgPrice.toFixed(2)}/cwt</td></tr>`
-        )
-        .join("\n")}
-    </table>
-  </div>
+  <table>
+    <tr><th>Category</th><th>Head</th><th>Wt Range</th><th>Avg Price</th></tr>
+    ${topCategories
+      .map(
+        (c) =>
+          `<tr><td class="category-cell">${c.category}</td><td>${c.head}</td><td>${c.wtRange} lbs</td><td class="price-cell">$${c.avgPrice.toFixed(2)}/cwt</td></tr>`
+      )
+      .join("\n")}
+  </table>
 </div>`;
 }
 
 function renderPredictions(predictions: Prediction[]): string {
   if (predictions.length === 0) {
-    return `<p>No predictions yet. Predictions will be generated after the first data fetch.</p>`;
+    return `<div class="insight-card" style="text-align:center; color:var(--ink-muted);">
+  <div class="insight-type trend">Awaiting Data</div>
+  <h3>Predictions will generate after the next data fetch</h3>
+  <p>The AI engine needs at least two weeks of auction data to begin making week-over-week price predictions. Data is accumulating now \u2014 first predictions coming soon.</p>
+</div>`;
   }
 
   const rows = predictions.slice(0, 30).map((p) => {
     const dirClass = p.predictedDirection === "up" ? "pred-up" : p.predictedDirection === "down" ? "pred-down" : "pred-flat";
-    const arrow = p.predictedDirection === "up" ? "📈" : p.predictedDirection === "down" ? "📉" : "➡️";
-    const confColor = p.confidence > 60 ? "#2E7D32" : p.confidence > 40 ? "#F57F17" : "#999";
+    const arrow = p.predictedDirection === "up" ? "\u2191" : p.predictedDirection === "down" ? "\u2193" : "\u2192";
+    const trendClass = p.predictedDirection === "up" ? "trend-up" : p.predictedDirection === "down" ? "trend-down" : "trend-neutral";
+    const confColor = p.confidence > 60 ? "var(--field-green)" : p.confidence > 40 ? "var(--wheat)" : "var(--ink-muted)";
 
     let statusBadge;
     if (!p.resolved) {
       statusBadge = `<span class="badge badge-pending">Pending</span>`;
     } else if (p.correct) {
-      statusBadge = `<span class="badge badge-correct">✓ Correct</span>`;
+      statusBadge = `<span class="badge badge-correct">\u2713 Correct</span>`;
     } else {
-      statusBadge = `<span class="badge badge-wrong">✗ Wrong</span>`;
+      statusBadge = `<span class="badge badge-wrong">\u2717 Wrong</span>`;
     }
 
     const actualCol = p.resolved
       ? `$${p.actualAvgPrice?.toFixed(2)} (${p.actualDirection})`
-      : "—";
+      : "\u2014";
 
     return `<tr class="${dirClass}">
       <td>${p.barnName}</td>
-      <td>${p.category}</td>
-      <td class="price">$${p.currentAvgPrice.toFixed(2)}</td>
-      <td>${arrow} ${p.predictedDirection}</td>
-      <td><span class="confidence-bar" style="width:${p.confidence}px; background:${confColor}"></span>${p.confidence}%</td>
+      <td class="category-cell">${p.category}</td>
+      <td class="price-cell">$${p.currentAvgPrice.toFixed(2)}</td>
+      <td class="${trendClass}" style="font-weight:600">${arrow} ${p.predictedDirection}</td>
+      <td><div class="confidence-bar" style="width:80px; display:inline-block;"><div class="confidence-fill" style="width:${p.confidence}%; background:${confColor}"></div></div> ${p.confidence}%</td>
       <td>${p.targetDate}</td>
-      <td>${actualCol}</td>
+      <td class="price-cell">${actualCol}</td>
       <td>${statusBadge}</td>
     </tr>`;
   });
 
-  return `<table class="predictions-table">
-<tr><th>Barn</th><th>Category</th><th>Current</th><th>Call</th><th>Confidence</th><th>Target Date</th><th>Actual</th><th>Status</th></tr>
+  return `<div class="price-table-wrap"><table>
+<tr><th>Barn</th><th>Category</th><th>Current</th><th>Call</th><th>Confidence</th><th>Target</th><th>Actual</th><th>Status</th></tr>
 ${rows.join("\n")}
-</table>`;
+</table></div>`;
 }
 
 function renderAccuracy(stats: AccuracyStats): string {
   if (stats.totalPredictions === 0) {
-    return `<p>Accuracy tracking will begin once predictions are resolved against actual auction data. This typically takes 1-2 auction cycles.</p>`;
+    return `<div class="insight-card" style="color:var(--ink-muted);">
+  <div class="insight-type trend">Coming Soon</div>
+  <p>Accuracy tracking will begin once predictions are resolved against actual auction data. This typically takes 1\u20132 auction cycles.</p>
+</div>`;
   }
 
   const catRows = Object.entries(stats.byCategory)
     .sort((a, b) => b[1].total - a[1].total)
     .map(
       ([cat, s]) =>
-        `<tr><td>${cat}</td><td>${s.total}</td><td>${s.correct}</td><td class="price">${s.accuracy}%</td></tr>`
+        `<tr><td class="category-cell">${cat}</td><td>${s.total}</td><td>${s.correct}</td><td class="price-cell">${s.accuracy}%</td></tr>`
     )
     .join("\n");
 
   const barnRows = Object.entries(stats.byBarn)
     .map(
       ([barn, s]) =>
-        `<tr><td>${barn}</td><td>${s.total}</td><td>${s.correct}</td><td class="price">${s.accuracy}%</td></tr>`
+        `<tr><td class="category-cell">${barn}</td><td>${s.total}</td><td>${s.correct}</td><td class="price-cell">${s.accuracy}%</td></tr>`
     )
     .join("\n");
 
   return `
-<div class="stats-row">
-  <div class="stat-card green">
-    <div class="value">${stats.accuracy}%</div>
-    <div class="label">Overall Accuracy</div>
+<div class="stats-grid" style="grid-template-columns: repeat(3, 1fr);">
+  <div class="stat-card">
+    <div class="stat-label">Overall Accuracy</div>
+    <div class="stat-value green">${stats.accuracy}%</div>
   </div>
   <div class="stat-card">
-    <div class="value">${stats.resolved}/${stats.totalPredictions}</div>
-    <div class="label">Resolved / Total</div>
+    <div class="stat-label">Resolved / Total</div>
+    <div class="stat-value">${stats.resolved}/${stats.totalPredictions}</div>
   </div>
-  <div class="stat-card green">
-    <div class="value">${stats.correct}</div>
-    <div class="label">Correct Predictions</div>
+  <div class="stat-card">
+    <div class="stat-label">Correct</div>
+    <div class="stat-value green">${stats.correct}</div>
   </div>
 </div>
 
 ${catRows ? `
-<h3 style="margin: 1rem 0 0.5rem; color: var(--barn-red);">By Category</h3>
-<table class="comparison-table">
+<h3 style="margin: 1rem 0 0.5rem; color: var(--ink); font-weight:600;">By Category</h3>
+<div class="price-table-wrap"><table>
 <tr><th>Category</th><th>Predictions</th><th>Correct</th><th>Accuracy</th></tr>
 ${catRows}
-</table>` : ""}
+</table></div>` : ""}
 
 ${barnRows ? `
-<h3 style="margin: 1rem 0 0.5rem; color: var(--barn-red);">By Barn</h3>
-<table class="comparison-table">
+<h3 style="margin: 1rem 0 0.5rem; color: var(--ink); font-weight:600;">By Barn</h3>
+<div class="price-table-wrap"><table>
 <tr><th>Barn</th><th>Predictions</th><th>Correct</th><th>Accuracy</th></tr>
 ${barnRows}
-</table>` : ""}
+</table></div>` : ""}
 `;
 }
