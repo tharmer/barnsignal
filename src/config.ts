@@ -168,6 +168,41 @@ export const HAY_AUCTION = {
   pdfUrl: "https://www.ams.usda.gov/mnreports/ams_1725.pdf",
 };
 
+// Geographic regions — grouped by realistic hauling distance
+export interface Region {
+  id: string;
+  name: string;
+  reportIds: number[];  // barns in this region
+}
+
+export const REGIONS: Region[] = [
+  {
+    id: "lancaster",
+    name: "Lancaster / Chester Co.",
+    reportIds: [1908, 1909, 1913, 1915, 1916, 1924],  // NH Mon/Thu, NH Sheep, Vintage Tue/Mon, Vintage Feeder
+  },
+  {
+    id: "south-central-pa",
+    name: "South-Central PA / MD",
+    reportIds: [1917, 1920, 1918, 1870],  // Greencastle Mon/Thu, Middleburg, Four States MD
+  },
+  {
+    id: "shenandoah",
+    name: "Shenandoah Valley",
+    reportIds: [2173, 2175],  // Fauquier, Winchester
+  },
+  {
+    id: "wv",
+    name: "West Virginia",
+    reportIds: [1872, 1880],  // Buckhannon, Ripley
+  },
+  {
+    id: "finger-lakes",
+    name: "Finger Lakes NY",
+    reportIds: [1974],  // Canandaigua
+  },
+];
+
 // Key cattle categories we track for predictions
 export const TRACKED_CATEGORIES = [
   "STEERS - Choice and Prime 3-4",

@@ -1,6 +1,6 @@
 // BarnSignal — Dashboard HTML Generator
 
-import { BARNS } from "./config.js";
+import { BARNS, REGIONS } from "./config.js";
 import {
   getLatestAuction,
   getAllPredictions,
@@ -133,7 +133,7 @@ export async function renderDashboard(): Promise<string> {
   }
   .ticker-inner {
     display: inline-block;
-    animation: ticker-scroll 200s linear infinite;
+    animation: ticker-scroll 320s linear infinite;
   }
   .ticker-item {
     display: inline-block;
@@ -149,6 +149,51 @@ export async function renderDashboard(): Promise<string> {
   @keyframes ticker-scroll {
     0% { transform: translateX(0); }
     100% { transform: translateX(-50%); }
+  }
+
+  /* ── Region Filter ── */
+  .region-bar {
+    background: var(--parchment-dark);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 0;
+  }
+  .region-bar-inner {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 24px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .region-bar-label {
+    font-size: 0.78em;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--ink-muted);
+    font-weight: 600;
+    margin-right: 4px;
+  }
+  .region-btn {
+    padding: 6px 14px;
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    background: var(--card-bg);
+    color: var(--ink-light);
+    font-family: 'DM Sans', Georgia, serif;
+    font-size: 0.82em;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .region-btn:hover {
+    border-color: var(--wheat);
+    color: var(--ink);
+  }
+  .region-btn.active {
+    background: var(--ink);
+    color: var(--parchment);
+    border-color: var(--ink);
   }
 
   /* ── Container ── */
@@ -534,6 +579,8 @@ ${renderTicker(activeBarns)}
   </div>
 </section>
 
+${renderRegionBar()}
+
 <div class="container">
 
 ${renderAlertBanner(activeBarns)}
@@ -555,7 +602,7 @@ ${activeBarns.length >= 2 ? renderCrossAuctionComparison(activeBarns) : "<p>Coll
 ${renderPredictions(predictions)}
 
 <div class="section-header">
-  <h2>Auction Barn Reports</h2>
+  <h2 id="barn-heading">Auction Barn Reports</h2>
   <span class="source">Most recent sale data</span>
 </div>
 <div class="barn-grid">
@@ -592,8 +639,43 @@ ${renderAccuracy(stats)}
   </div>
 </footer>
 
+<script>
+function filterRegion(regionId) {
+  // Update buttons
+  document.querySelectorAll('.region-btn').forEach(function(btn) {
+    btn.classList.toggle('active', btn.dataset.region === regionId);
+  });
+
+  // Filter barn cards
+  document.querySelectorAll('.barn-card').forEach(function(card) {
+    if (regionId === 'all') {
+      card.style.display = '';
+    } else {
+      card.style.display = card.dataset.region === regionId ? '' : 'none';
+    }
+  });
+
+  // Update heading text
+  var label = regionId === 'all' ? 'All Regions' : document.querySelector('.region-btn[data-region="' + regionId + '"]').textContent;
+  var heading = document.getElementById('barn-heading');
+  if (heading) heading.textContent = regionId === 'all' ? 'Auction Barn Reports' : label + ' Auction Reports';
+}
+</script>
+
 </body>
 </html>`;
+}
+
+function renderRegionBar(): string {
+  const buttons = REGIONS.map(
+    (r) => '<button class="region-btn" data-region="' + r.id + '" onclick="filterRegion(\'' + r.id + '\')">' + r.name + '</button>'
+  ).join("\n    ");
+
+  return '<div class="region-bar"><div class="region-bar-inner">' +
+    '<span class="region-bar-label">Your Region:</span>' +
+    '<button class="region-btn active" data-region="all" onclick="filterRegion(\'all\')">All Regions</button>' +
+    '\n    ' + buttons +
+    '</div></div>';
 }
 
 function renderTicker(barns: AuctionEntry[]): string {
@@ -739,13 +821,21 @@ ${rows}
 <p style="font-size:0.78em; color:var(--ink-muted); margin-top:8px; font-style:italic;">Green highlight = highest price at that barn. Spread shows the price gap between barns \u2014 larger spreads may indicate arbitrage opportunity factoring in trucking costs.</p>`;
 }
 
+function getRegionForBarn(reportId: number): string {
+  for (const r of REGIONS) {
+    if (r.reportIds.includes(reportId)) return r.id;
+  }
+  return "other";
+}
+
 function renderBarnCard(barn: AuctionEntry): string {
   const topCategories = barn.categories
     .filter((c) => c.dressing === "Average")
     .slice(0, 12);
+  const regionId = getRegionForBarn(barn.reportId);
 
   return `
-<div class="barn-card">
+<div class="barn-card" data-region="${regionId}">
   <div class="barn-card-header">
     <h3>${barn.barnName}</h3>
     <div class="meta">${barn.location} | ${barn.reportDate} | ${barn.totalReceipts.toLocaleString()} head</div>
