@@ -642,13 +642,11 @@ ${renderTicker(activeBarns)}
       <div class="cta-box">
         <div class="cta-label">Get Price Alerts &mdash; Free During Launch</div>
         <div style="font-size:0.82em; color:var(--ink-light); margin-bottom:10px; line-height:1.4;">${activeRegion === "all"
-          ? "Alerts from <strong>all 12 barns</strong> across 5 states."
-          : "Alerts for <strong>" + regionLabel + "</strong> barns only."}</div>
+          ? "Alerts from <strong>all " + BARNS.length + " barns</strong> on sale days."
+          : "Alerts for <strong>" + regionLabel + "</strong> on sale days."}</div>
         <input type="email" placeholder="your@email.com" id="cta-email" />
         <button class="cta-btn" id="cta-btn" onclick="submitSignup()">Sign Up Free</button>
-        <div class="cta-note" id="cta-note">${activeRegion === "all"
-          ? "You'll get updates from every region. Pick a region above to narrow it down."
-          : "Auction-day alerts only. No spam."}</div>
+        <div class="cta-note" id="cta-note">Auction-day alerts only. No spam.</div>
       </div>
     </div>
   </div>
