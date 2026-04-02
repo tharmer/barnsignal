@@ -225,6 +225,18 @@ app.get("/api/signup/count", async (_req, res) => {
   }
 });
 
+// ─── API: Barn locations for calculator ───
+
+app.get("/api/barns", (_req, res) => {
+  res.json(BARNS.map((b) => ({
+    reportId: b.reportId,
+    shortName: b.shortName,
+    location: b.location,
+    lat: b.lat,
+    lng: b.lng,
+  })));
+});
+
 // ─── SEO ───
 
 app.get("/robots.txt", (_req, res) => {

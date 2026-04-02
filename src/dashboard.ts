@@ -495,6 +495,82 @@ export async function renderDashboard(activeRegion: string = "all"): Promise<str
   /* ── Best Price ── */
   .best-price { background: #e8f5e3; font-weight: 600; }
 
+  /* ── Net Price Calculator ── */
+  .calc-box {
+    background: var(--card-bg);
+    border: 2px solid var(--wheat);
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 24px;
+  }
+  .calc-box h3 {
+    font-size: 1.05em;
+    margin-bottom: 4px;
+  }
+  .calc-box .calc-desc {
+    font-size: 0.85em;
+    color: var(--ink-light);
+    margin-bottom: 14px;
+    line-height: 1.5;
+  }
+  .calc-inputs {
+    display: flex;
+    gap: 12px;
+    align-items: flex-end;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+  }
+  .calc-field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .calc-field label {
+    font-size: 0.72em;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--ink-muted);
+    font-weight: 600;
+  }
+  .calc-field input, .calc-field select {
+    padding: 8px 12px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-family: 'DM Sans', Georgia, serif;
+    font-size: 0.9em;
+    background: white;
+  }
+  .calc-field input:focus, .calc-field select:focus { border-color: var(--wheat); outline: none; }
+  .calc-go {
+    padding: 8px 20px;
+    background: var(--wheat);
+    color: var(--ink);
+    border: none;
+    border-radius: 6px;
+    font-family: 'DM Sans', Georgia, serif;
+    font-size: 0.9em;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .calc-go:hover { background: var(--wheat-light); }
+  .calc-result {
+    display: none;
+    margin-top: 16px;
+  }
+  .calc-result.visible { display: block; }
+  .calc-best {
+    background: var(--field-green);
+    color: white;
+    padding: 12px 16px;
+    border-radius: 6px;
+    margin-bottom: 12px;
+    font-size: 0.92em;
+    line-height: 1.4;
+  }
+  .calc-best strong { color: white; }
+  .net-best { background: #e8f5e3; font-weight: 700; }
+
   /* ── Footer ── */
   footer {
     background: var(--ink);
@@ -587,6 +663,8 @@ ${renderAlertBanner(activeBarns)}
 ${renderStatsCards(activeBarns, stats)}
 
 ${activeBarns.length > 0 ? renderMarketCommentary(activeBarns) : ""}
+
+${renderCalculator(activeBarns)}
 
 <div class="section-header">
   <h2>${activeRegion === "all" ? "Cross-Auction Price Comparison" : regionLabel + " Price Comparison"}</h2>
@@ -682,6 +760,227 @@ function submitSignup() {
 
 </body>
 </html>`;
+}
+
+function renderCalculator(barns: AuctionEntry[]): string {
+  if (barns.length < 2) return "";
+
+  // Build a lookup of reportId -> barn coordinates from BARNS config
+  const barnCoords = BARNS.map((b) => ({
+    reportId: b.reportId,
+    shortName: b.shortName,
+    lat: b.lat,
+    lng: b.lng,
+  }));
+
+  // Find shared "Average" categories across at least 2 barns
+  const catMap = new Map<string, { barn: string; reportId: number; avgPrice: number; head: number }[]>();
+  for (const barn of barns) {
+    for (const cat of barn.categories.filter((c) => c.dressing === "Average")) {
+      if (!catMap.has(cat.category)) catMap.set(cat.category, []);
+      catMap.get(cat.category)!.push({ barn: barn.barnName, reportId: barn.reportId, avgPrice: cat.avgPrice, head: cat.head });
+    }
+  }
+  const sharedCats = [...catMap.entries()].filter(([_, d]) => d.length >= 2).map(([name]) => name).slice(0, 20);
+
+  const catOptions = sharedCats.map(
+    (c) => '<option value="' + c.replace(/"/g, "&quot;") + '">' + c + '</option>'
+  ).join("");
+
+  // Embed price data and barn coords in page for JS
+  const priceData: Record<string, Record<number, number>> = {};
+  for (const [cat, entries] of catMap.entries()) {
+    priceData[cat] = {};
+    for (const e of entries) {
+      priceData[cat][e.reportId] = e.avgPrice;
+    }
+  }
+
+  return `
+<div class="section-header">
+  <h2>Net Price Calculator</h2>
+  <span class="source">Factor in your trucking costs</span>
+</div>
+<div class="calc-box">
+  <h3>Which barn actually puts the most in your pocket?</h3>
+  <div class="calc-desc">Enter your zip code and load details. We'll calculate round-trip trucking costs and show you the net price at each barn &mdash; so you know where to haul before you load the trailer.</div>
+  <div class="calc-inputs">
+    <div class="calc-field">
+      <label>Your Zip Code</label>
+      <input type="text" id="calc-zip" placeholder="17557" maxlength="5" style="width:90px;" />
+    </div>
+    <div class="calc-field">
+      <label>Category</label>
+      <select id="calc-category" style="min-width:200px;">
+        ${catOptions}
+      </select>
+    </div>
+    <div class="calc-field">
+      <label>Head Count</label>
+      <input type="number" id="calc-head" value="33" min="1" max="100" style="width:70px;" />
+    </div>
+    <div class="calc-field">
+      <label>Avg Weight (lbs)</label>
+      <input type="number" id="calc-weight" value="1350" min="200" max="3000" style="width:90px;" />
+    </div>
+    <div class="calc-field">
+      <label>Diesel $/gal</label>
+      <input type="number" id="calc-diesel" value="3.85" min="1" max="8" step="0.05" style="width:80px;" />
+    </div>
+    <button class="calc-go" onclick="runCalc()">Calculate Net Price</button>
+  </div>
+  <div class="calc-result" id="calc-result"></div>
+</div>
+
+<script>
+var BARN_COORDS = ${JSON.stringify(barnCoords)};
+var PRICE_DATA = ${JSON.stringify(priceData)};
+
+// Zip code -> lat/lng via simple US centroid table (embedded for zero API dependency)
+// We use a small lookup of ~200 common mid-Atlantic zips + a fallback geocode estimate
+function zipToLatLng(zip) {
+  // US zip code centroid approximation: first 3 digits map to rough lat/lng
+  // This covers the mid-Atlantic region well enough for driving estimates
+  var prefix = parseInt(zip.substring(0, 3));
+  // PA/NJ/NY/MD/VA/WV/DE/OH zip prefix ranges with approximate centroids
+  var regions = [
+    [150,159, 40.44, -79.99],   // Pittsburgh area
+    [160,169, 40.85, -78.75],   // Central PA west
+    [170,179, 40.27, -76.88],   // Harrisburg/Lancaster
+    [180,189, 40.60, -75.47],   // Lehigh Valley/Poconos
+    [190,196, 39.95, -75.17],   // Philadelphia
+    [197,199, 39.16, -75.52],   // Delaware
+    [200,205, 38.90, -77.03],   // DC
+    [206,219, 39.05, -77.15],   // MD suburbs
+    [220,246, 38.85, -77.30],   // Northern VA
+    [247,268, 37.80, -79.45],   // VA
+    [100,119, 40.71, -74.01],   // NYC area
+    [120,129, 42.65, -73.75],   // Albany area
+    [130,139, 43.05, -76.15],   // Syracuse area
+    [140,149, 42.89, -78.88],   // Buffalo area
+    [250,268, 38.35, -81.63],   // WV
+    [430,439, 39.96, -82.99],   // Columbus OH
+    [440,449, 41.50, -81.69],   // Cleveland OH
+    [450,459, 39.76, -84.19],   // Dayton OH
+    [460,469, 39.77, -86.16],   // Indianapolis
+    [210,219, 39.29, -76.61],   // Baltimore
+    [254,268, 38.60, -80.80],   // WV interior
+    [300,319, 33.75, -84.39],   // Atlanta area
+  ];
+  for (var i = 0; i < regions.length; i++) {
+    if (prefix >= regions[i][0] && prefix <= regions[i][1]) {
+      return { lat: regions[i][2], lng: regions[i][3] };
+    }
+  }
+  // Fallback: center of mid-Atlantic
+  return { lat: 39.95, lng: -77.50 };
+}
+
+function haversine(lat1, lng1, lat2, lng2) {
+  var R = 3959; // miles
+  var dLat = (lat2 - lat1) * Math.PI / 180;
+  var dLng = (lng2 - lng1) * Math.PI / 180;
+  var a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+          Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+          Math.sin(dLng/2) * Math.sin(dLng/2);
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
+function runCalc() {
+  var zip = document.getElementById('calc-zip').value.trim();
+  var category = document.getElementById('calc-category').value;
+  var headCount = parseInt(document.getElementById('calc-head').value) || 33;
+  var avgWeight = parseInt(document.getElementById('calc-weight').value) || 1350;
+  var diesel = parseFloat(document.getElementById('calc-diesel').value) || 3.85;
+  var resultDiv = document.getElementById('calc-result');
+
+  if (!zip || zip.length < 5) {
+    resultDiv.innerHTML = '<div style="color:var(--barn-red); font-size:0.9em;">Please enter a 5-digit zip code.</div>';
+    resultDiv.classList.add('visible');
+    return;
+  }
+
+  var origin = zipToLatLng(zip);
+  var prices = PRICE_DATA[category];
+  if (!prices) {
+    resultDiv.innerHTML = '<div style="color:var(--barn-red); font-size:0.9em;">No price data for that category.</div>';
+    resultDiv.classList.add('visible');
+    return;
+  }
+
+  // Trucking model: round trip, 6 mpg loaded trailer, 1.3x road factor on haversine
+  var MPG = 6;
+  var ROAD_FACTOR = 1.3;
+
+  var results = [];
+  for (var i = 0; i < BARN_COORDS.length; i++) {
+    var barn = BARN_COORDS[i];
+    var price = prices[barn.reportId];
+    if (price === undefined) continue;
+
+    var crowMiles = haversine(origin.lat, origin.lng, barn.lat, barn.lng);
+    var roadMiles = crowMiles * ROAD_FACTOR;
+    var roundTrip = roadMiles * 2;
+    var fuelCost = (roundTrip / MPG) * diesel;
+
+    // Total load value: price is $/cwt, so value = price * (weight/100) * head
+    var grossValue = price * (avgWeight / 100) * headCount;
+    var netValue = grossValue - fuelCost;
+    var netPerCwt = price - (fuelCost / ((avgWeight / 100) * headCount));
+
+    results.push({
+      name: barn.shortName,
+      distance: Math.round(roadMiles),
+      roundTrip: Math.round(roundTrip),
+      fuelCost: fuelCost,
+      grossPrice: price,
+      netPerCwt: netPerCwt,
+      grossValue: grossValue,
+      netValue: netValue,
+    });
+  }
+
+  // Sort by net value descending
+  results.sort(function(a, b) { return b.netValue - a.netValue; });
+
+  if (results.length === 0) {
+    resultDiv.innerHTML = '<div style="color:var(--ink-muted); font-size:0.9em;">No barns have data for this category.</div>';
+    resultDiv.classList.add('visible');
+    return;
+  }
+
+  var best = results[0];
+  var savings = results.length > 1 ? best.netValue - results[1].netValue : 0;
+
+  var html = '<div class="calc-best"><strong>' + best.name + ' is your best net price for ' + category + '.</strong><br>';
+  html += 'Net $' + best.netPerCwt.toFixed(2) + '/cwt after $' + best.fuelCost.toFixed(0) + ' in fuel (' + best.roundTrip + ' mi round trip).';
+  if (savings > 50) {
+    html += '<br>That\\'s <strong>$' + savings.toFixed(0) + ' more per load</strong> than the next-best option.';
+  }
+  html += '</div>';
+
+  html += '<div class="price-table-wrap"><table>';
+  html += '<tr><th>Barn</th><th>Distance</th><th>Round Trip</th><th>Fuel Cost</th><th>Gross $/cwt</th><th>Net $/cwt</th><th>Net Load Value</th></tr>';
+  for (var j = 0; j < results.length; j++) {
+    var r = results[j];
+    var rowClass = j === 0 ? ' class="net-best"' : '';
+    html += '<tr' + rowClass + '>';
+    html += '<td class="category-cell">' + r.name + '</td>';
+    html += '<td>' + r.distance + ' mi</td>';
+    html += '<td>' + r.roundTrip + ' mi</td>';
+    html += '<td class="price-cell" style="color:var(--barn-red)">-$' + r.fuelCost.toFixed(0) + '</td>';
+    html += '<td class="price-cell">$' + r.grossPrice.toFixed(2) + '</td>';
+    html += '<td class="price-cell" style="font-weight:700">$' + r.netPerCwt.toFixed(2) + '</td>';
+    html += '<td class="price-cell" style="font-weight:700">$' + r.netValue.toFixed(0) + '</td>';
+    html += '</tr>';
+  }
+  html += '</table></div>';
+  html += '<p style="font-size:0.72em; color:var(--ink-muted); margin-top:6px; font-style:italic;">Estimates based on ' + MPG + ' mpg loaded trailer, ' + ROAD_FACTOR + 'x road factor on straight-line distance, $' + diesel.toFixed(2) + '/gal diesel. Actual costs may vary.</p>';
+
+  resultDiv.innerHTML = html;
+  resultDiv.classList.add('visible');
+}
+</script>`;
 }
 
 function renderRegionBar(activeRegion: string): string {

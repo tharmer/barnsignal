@@ -6,6 +6,8 @@ export interface AuctionBarn {
   name: string;
   shortName: string;
   location: string;
+  lat: number;
+  lng: number;
   auctionDays: string[];   // e.g. ["Monday"] or ["Tuesday"]
   categories: string[];     // what they sell
   pdfUrl: string;
@@ -18,6 +20,7 @@ export const BARNS: AuctionBarn[] = [
     name: "New Holland Livestock Cattle Auction (Monday)",
     shortName: "New Holland (Mon)",
     location: "New Holland, PA",
+    lat: 40.1012, lng: -76.0852,
     auctionDays: ["Monday"],
     categories: ["slaughter_cattle", "feeder_dairy_calves"],
     pdfUrl: "https://www.ams.usda.gov/mnreports/ams_1908.pdf",
@@ -27,6 +30,7 @@ export const BARNS: AuctionBarn[] = [
     name: "New Holland Livestock Cattle Auction (Thursday)",
     shortName: "New Holland (Thu)",
     location: "New Holland, PA",
+    lat: 40.1012, lng: -76.0852,
     auctionDays: ["Thursday"],
     categories: ["slaughter_cattle", "feeder_dairy_calves"],
     pdfUrl: "https://www.ams.usda.gov/mnreports/ams_1909.pdf",
@@ -36,6 +40,7 @@ export const BARNS: AuctionBarn[] = [
     name: "Vintage Livestock Auction (Monday)",
     shortName: "Vintage (Mon)",
     location: "Paradise, PA",
+    lat: 40.0099, lng: -76.1271,
     auctionDays: ["Monday"],
     categories: ["slaughter_cattle"],
     pdfUrl: "https://www.ams.usda.gov/mnreports/ams_1916.pdf",
@@ -45,6 +50,7 @@ export const BARNS: AuctionBarn[] = [
     name: "Greencastle Livestock Auction (Monday)",
     shortName: "Greencastle (Mon)",
     location: "Greencastle, PA",
+    lat: 39.7904, lng: -77.7261,
     auctionDays: ["Monday"],
     categories: ["slaughter_cattle", "feeder_cattle"],
     pdfUrl: "https://www.ams.usda.gov/mnreports/ams_1917.pdf",
@@ -54,6 +60,7 @@ export const BARNS: AuctionBarn[] = [
     name: "Middleburg Livestock Auction",
     shortName: "Middleburg",
     location: "Middleburg, PA",
+    lat: 40.7865, lng: -77.0477,
     auctionDays: ["Monday"],
     categories: ["slaughter_cattle"],
     pdfUrl: "https://www.ams.usda.gov/mnreports/ams_1918.pdf",
@@ -63,6 +70,7 @@ export const BARNS: AuctionBarn[] = [
     name: "Greencastle Livestock Auction (Thursday)",
     shortName: "Greencastle (Thu)",
     location: "Greencastle, PA",
+    lat: 39.7904, lng: -77.7261,
     auctionDays: ["Thursday"],
     categories: ["slaughter_cattle", "feeder_cattle"],
     pdfUrl: "https://www.ams.usda.gov/mnreports/ams_1920.pdf",
@@ -73,6 +81,7 @@ export const BARNS: AuctionBarn[] = [
     name: "Four States Livestock Sales",
     shortName: "Four States (MD)",
     location: "Hagerstown, MD",
+    lat: 39.6418, lng: -77.7200,
     auctionDays: ["Tuesday"],
     categories: ["slaughter_cattle", "feeder_cattle"],
     pdfUrl: "https://www.ams.usda.gov/mnreports/ams_1870.pdf",
@@ -83,6 +92,7 @@ export const BARNS: AuctionBarn[] = [
     name: "Fauquier Livestock Exchange Graded Feeder Cattle Sale",
     shortName: "Fauquier (VA)",
     location: "Marshall, VA",
+    lat: 38.8651, lng: -77.8578,
     auctionDays: ["Monthly"],
     categories: ["feeder_cattle"],
     pdfUrl: "https://www.ams.usda.gov/mnreports/ams_2173.pdf",
@@ -92,6 +102,7 @@ export const BARNS: AuctionBarn[] = [
     name: "Farmers Livestock Exchange Graded Feeder Cattle Sale",
     shortName: "Winchester (VA)",
     location: "Winchester, VA",
+    lat: 39.1857, lng: -78.1633,
     auctionDays: ["Monthly"],
     categories: ["feeder_cattle"],
     pdfUrl: "https://www.ams.usda.gov/mnreports/ams_2175.pdf",
@@ -102,6 +113,7 @@ export const BARNS: AuctionBarn[] = [
     name: "Buckhannon Stockyards Livestock Auction",
     shortName: "Buckhannon (WV)",
     location: "Buckhannon, WV",
+    lat: 38.9937, lng: -80.2320,
     auctionDays: ["Wednesday"],
     categories: ["slaughter_cattle", "feeder_cattle"],
     pdfUrl: "https://www.ams.usda.gov/mnreports/ams_1872.pdf",
@@ -111,6 +123,7 @@ export const BARNS: AuctionBarn[] = [
     name: "Jackson County Regional Livestock Market",
     shortName: "Ripley (WV)",
     location: "Ripley, WV",
+    lat: 38.8187, lng: -81.7104,
     auctionDays: ["Thursday"],
     categories: ["slaughter_cattle", "feeder_cattle"],
     pdfUrl: "https://www.ams.usda.gov/mnreports/ams_1880.pdf",
@@ -121,6 +134,7 @@ export const BARNS: AuctionBarn[] = [
     name: "Canandaigua Stockyards Livestock Auction",
     shortName: "Canandaigua (NY)",
     location: "Canandaigua, NY",
+    lat: 42.8873, lng: -77.2814,
     auctionDays: ["Monday"],
     categories: ["slaughter_cattle", "feeder_cattle"],
     pdfUrl: "https://www.ams.usda.gov/mnreports/ams_1974.pdf",
