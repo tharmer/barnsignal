@@ -211,3 +211,26 @@ export async function getAccuracyStats(): Promise<AccuracyStats> {
     byBarn,
   };
 }
+
+// ─── Email Signups ───
+
+export async function storeEmailSignup(email: string, region: string): Promise<{ ok: boolean; alreadyExists: boolean }> {
+  const r = getRedis();
+  const key = `signup:${email.toLowerCase().trim()}`;
+  const exists = await r.exists(key);
+  if (exists) return { ok: true, alreadyExists: true };
+
+  await r.set(key, JSON.stringify({
+    email: email.toLowerCase().trim(),
+    region,
+    signedUpAt: new Date().toISOString(),
+  }));
+  // Also add to the signup list for easy enumeration
+  await r.lpush("signups:list", email.toLowerCase().trim());
+  return { ok: true, alreadyExists: false };
+}
+
+export async function getSignupCount(): Promise<number> {
+  const r = getRedis();
+  return await r.llen("signups:list");
+}

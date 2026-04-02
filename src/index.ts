@@ -10,10 +10,14 @@ import {
   getAllPredictions,
   getAccuracyStats,
   getAuctionHistory,
+  storeEmailSignup,
+  getSignupCount,
 } from "./redis.js";
 import { BARNS } from "./config.js";
 
 const app = express();
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 // ─── Dashboard ───
 
@@ -187,6 +191,56 @@ app.get("/api/cron/predict", async (_req, res) => {
     console.error("Cron predict error:", err);
     res.status(500).json({ error: (err as Error).message });
   }
+});
+
+// ─── API: Email signup ───
+
+app.post("/api/signup", async (req, res) => {
+  try {
+    const email = (req.body.email || "").trim();
+    const region = (req.body.region || "all").trim();
+
+    if (!email || !email.includes("@") || !email.includes(".")) {
+      res.status(400).json({ error: "Valid email required" });
+      return;
+    }
+
+    const result = await storeEmailSignup(email, region);
+    res.json({
+      success: true,
+      message: result.alreadyExists ? "You're already signed up!" : "You're in! Alerts coming soon.",
+    });
+  } catch (err) {
+    console.error("Signup error:", err);
+    res.status(500).json({ error: "Signup failed, try again" });
+  }
+});
+
+app.get("/api/signup/count", async (_req, res) => {
+  try {
+    const count = await getSignupCount();
+    res.json({ count });
+  } catch (err) {
+    res.status(500).json({ error: (err as Error).message });
+  }
+});
+
+// ─── SEO ───
+
+app.get("/robots.txt", (_req, res) => {
+  res.type("text/plain").send(`User-agent: *
+Allow: /
+Sitemap: https://barnsignal.com/sitemap.xml
+`);
+});
+
+app.get("/sitemap.xml", (_req, res) => {
+  const regions = ["", "?region=lancaster", "?region=south-central-pa", "?region=shenandoah", "?region=wv", "?region=finger-lakes"];
+  const urls = regions.map((r) => `  <url><loc>https://barnsignal.com/${r}</loc><changefreq>daily</changefreq></url>`).join("\n");
+  res.type("application/xml").send(`<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${urls}
+</urlset>`);
 });
 
 // ─── Health check ───

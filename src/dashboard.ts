@@ -35,7 +35,17 @@ export async function renderDashboard(activeRegion: string = "all"): Promise<str
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BarnSignal — Mid-Atlantic Livestock Price Intelligence</title>
+<title>BarnSignal — Mid-Atlantic Livestock Auction Prices &amp; Trends</title>
+<meta name="description" content="Compare livestock auction prices across Pennsylvania, Maryland, Virginia, West Virginia, and New York. Real-time USDA data from 12 auction barns, AI price predictions, and cross-auction comparison.">
+<meta name="keywords" content="livestock auction prices, cattle prices, New Holland auction, Lancaster County livestock, USDA market news, feeder cattle prices, slaughter cattle, auction barn prices, mid-Atlantic livestock">
+<meta property="og:title" content="BarnSignal — Know Before You Go">
+<meta property="og:description" content="Cross-auction livestock price comparison from 12 USDA-reported barns across PA, MD, VA, WV, and NY. Free price alerts and AI predictions.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://barnsignal.com">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="BarnSignal — Mid-Atlantic Livestock Prices">
+<meta name="twitter:description" content="Compare auction prices across 12 barns. Real-time USDA data, AI predictions, and price alerts.">
+<link rel="canonical" href="https://barnsignal.com">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -556,8 +566,8 @@ ${renderTicker(activeBarns)}
       <div class="cta-box">
         <div class="cta-label">Get Daily Price Alerts</div>
         <input type="email" placeholder="your@email.com" id="cta-email" />
-        <button class="cta-btn" onclick="alert('Coming soon &mdash; BarnSignal alerts launch next month.')">Sign Up Free</button>
-        <div class="cta-note">No spam. Auction-day alerts only.</div>
+        <button class="cta-btn" id="cta-btn" onclick="submitSignup()">Sign Up Free</button>
+        <div class="cta-note" id="cta-note">No spam. Auction-day alerts only.</div>
       </div>
     </div>
   </div>
@@ -622,6 +632,48 @@ ${renderAccuracy(stats)}
     </div>
   </div>
 </footer>
+
+<script>
+function submitSignup() {
+  var email = document.getElementById('cta-email').value.trim();
+  var btn = document.getElementById('cta-btn');
+  var note = document.getElementById('cta-note');
+  if (!email || email.indexOf('@') === -1) {
+    note.textContent = 'Please enter a valid email address.';
+    note.style.color = 'var(--barn-red)';
+    return;
+  }
+  btn.disabled = true;
+  btn.textContent = 'Signing up...';
+  var region = new URLSearchParams(window.location.search).get('region') || 'all';
+  fetch('/api/signup', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email: email, region: region })
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(data) {
+    if (data.success) {
+      btn.textContent = 'Signed Up';
+      btn.style.background = 'var(--field-green)';
+      note.textContent = data.message;
+      note.style.color = 'var(--field-green)';
+      document.getElementById('cta-email').disabled = true;
+    } else {
+      btn.textContent = 'Sign Up Free';
+      btn.disabled = false;
+      note.textContent = data.error || 'Something went wrong.';
+      note.style.color = 'var(--barn-red)';
+    }
+  })
+  .catch(function() {
+    btn.textContent = 'Sign Up Free';
+    btn.disabled = false;
+    note.textContent = 'Network error. Try again.';
+    note.style.color = 'var(--barn-red)';
+  });
+}
+</script>
 
 </body>
 </html>`;
