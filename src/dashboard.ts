@@ -711,7 +711,7 @@ ${renderAccuracy(stats)}
     </div>
     <div class="disclaimer">
       Data source: USDA AMS Livestock, Poultry &amp; Grain Market News.<br>
-      Predictions are AI-generated estimates, not financial advice.
+      All prices shown are historical averages from completed sales and are not quotes, offers, or guarantees of future prices. Actual sale prices vary by animal quality, buyer competition, volume, and market conditions. Predictions are AI-generated estimates for informational purposes only &mdash; not financial or trading advice. BarnSignal is not liable for decisions made based on this data. Use at your own discretion.
     </div>
   </div>
 </footer>
@@ -803,7 +803,7 @@ function renderCalculator(barns: AuctionEntry[]): string {
 </div>
 <div class="calc-box">
   <h3>Which barn actually puts the most in your pocket?</h3>
-  <div class="calc-desc">Enter your zip code and load details. We'll calculate round-trip trucking costs and show you the net price at each barn &mdash; so you know where to haul before you load the trailer.</div>
+  <div class="calc-desc">Enter your zip code and load details. We'll calculate round-trip trucking costs and show you the estimated net price at each barn based on last week's sale averages &mdash; so you can compare before you load the trailer. <em>Prices are historical averages, not quotes or guarantees.</em></div>
   <div class="calc-inputs">
     <div class="calc-field">
       <label>Your Zip Code</label>
@@ -975,7 +975,8 @@ function runCalc() {
     html += '</tr>';
   }
   html += '</table></div>';
-  html += '<p style="font-size:0.72em; color:var(--ink-muted); margin-top:6px; font-style:italic;">Estimates based on ' + MPG + ' mpg loaded trailer, ' + ROAD_FACTOR + 'x road factor on straight-line distance, $' + diesel.toFixed(2) + '/gal diesel. Actual costs may vary.</p>';
+  html += '<p style="font-size:0.72em; color:var(--ink-muted); margin-top:6px; font-style:italic;">Estimates based on ' + MPG + ' mpg loaded trailer, ' + ROAD_FACTOR + 'x road factor on straight-line distance, $' + diesel.toFixed(2) + '/gal diesel. Actual mileage and costs will vary.</p>';
+  html += '<p style="font-size:0.72em; color:var(--barn-red); margin-top:4px; font-weight:500;"><strong>Not a price quote.</strong> Prices shown are historical averages from past USDA-reported sales. Actual sale prices vary by animal quality, buyer competition, volume, and market conditions. BarnSignal does not guarantee any price or outcome.</p>';
 
   resultDiv.innerHTML = html;
   resultDiv.classList.add('visible');
@@ -1135,7 +1136,7 @@ ${cats.map((c) => `<tr><td class="category-cell">${c.category}</td><td>${c.barn}
 <tr><th>Category</th>${barnNames.map((n) => `<th>${n}</th>`).join("")}<th>Spread</th></tr>
 ${rows}
 </table></div>
-<p style="font-size:0.78em; color:var(--ink-muted); margin-top:8px; font-style:italic;">Green highlight = highest price at that barn. Spread shows the price gap between barns \u2014 larger spreads may indicate arbitrage opportunity factoring in trucking costs.</p>`;
+<p style="font-size:0.78em; color:var(--ink-muted); margin-top:8px; font-style:italic;">Green highlight = highest price at that barn. Spread shows the price gap between barns \u2014 larger spreads may indicate opportunity factoring in trucking costs. All prices are historical sale averages from USDA reports and are not guaranteed.</p>`;
 }
 
 function getRegionForBarn(reportId: number): string {
