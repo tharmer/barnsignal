@@ -12,6 +12,7 @@ export interface AuctionBarn {
 }
 
 export const BARNS: AuctionBarn[] = [
+  // ── Pennsylvania ──
   {
     reportId: 1908,
     name: "New Holland Livestock Cattle Auction (Monday)",
@@ -33,7 +34,7 @@ export const BARNS: AuctionBarn[] = [
   {
     reportId: 1913,
     name: "New Holland Sheep and Goat Auction",
-    shortName: "New Holland Sheep/Goat",
+    shortName: "NH Sheep/Goat",
     location: "New Holland, PA",
     auctionDays: ["Monday"],
     categories: ["sheep", "goats"],
@@ -49,6 +50,42 @@ export const BARNS: AuctionBarn[] = [
     pdfUrl: "https://www.ams.usda.gov/mnreports/ams_1915.pdf",
   },
   {
+    reportId: 1916,
+    name: "Vintage Livestock Auction (Monday)",
+    shortName: "Vintage (Mon)",
+    location: "Paradise, PA",
+    auctionDays: ["Monday"],
+    categories: ["slaughter_cattle"],
+    pdfUrl: "https://www.ams.usda.gov/mnreports/ams_1916.pdf",
+  },
+  {
+    reportId: 1917,
+    name: "Greencastle Livestock Auction (Monday)",
+    shortName: "Greencastle (Mon)",
+    location: "Greencastle, PA",
+    auctionDays: ["Monday"],
+    categories: ["slaughter_cattle", "feeder_cattle"],
+    pdfUrl: "https://www.ams.usda.gov/mnreports/ams_1917.pdf",
+  },
+  {
+    reportId: 1918,
+    name: "Middleburg Livestock Auction",
+    shortName: "Middleburg",
+    location: "Middleburg, PA",
+    auctionDays: ["Monday"],
+    categories: ["slaughter_cattle"],
+    pdfUrl: "https://www.ams.usda.gov/mnreports/ams_1918.pdf",
+  },
+  {
+    reportId: 1920,
+    name: "Greencastle Livestock Auction (Thursday)",
+    shortName: "Greencastle (Thu)",
+    location: "Greencastle, PA",
+    auctionDays: ["Thursday"],
+    categories: ["slaughter_cattle", "feeder_cattle"],
+    pdfUrl: "https://www.ams.usda.gov/mnreports/ams_1920.pdf",
+  },
+  {
     reportId: 1924,
     name: "Vintage Feeder Cattle Sale",
     shortName: "Vintage Feeder",
@@ -56,6 +93,64 @@ export const BARNS: AuctionBarn[] = [
     auctionDays: ["Monthly"],
     categories: ["feeder_cattle"],
     pdfUrl: "https://www.ams.usda.gov/mnreports/ams_1924.pdf",
+  },
+  // ── Maryland ──
+  {
+    reportId: 1870,
+    name: "Four States Livestock Sales",
+    shortName: "Four States (MD)",
+    location: "Hagerstown, MD",
+    auctionDays: ["Tuesday"],
+    categories: ["slaughter_cattle", "feeder_cattle"],
+    pdfUrl: "https://www.ams.usda.gov/mnreports/ams_1870.pdf",
+  },
+  // ── Virginia ──
+  {
+    reportId: 2173,
+    name: "Fauquier Livestock Exchange Graded Feeder Cattle Sale",
+    shortName: "Fauquier (VA)",
+    location: "Marshall, VA",
+    auctionDays: ["Monthly"],
+    categories: ["feeder_cattle"],
+    pdfUrl: "https://www.ams.usda.gov/mnreports/ams_2173.pdf",
+  },
+  {
+    reportId: 2175,
+    name: "Farmers Livestock Exchange Graded Feeder Cattle Sale",
+    shortName: "Winchester (VA)",
+    location: "Winchester, VA",
+    auctionDays: ["Monthly"],
+    categories: ["feeder_cattle"],
+    pdfUrl: "https://www.ams.usda.gov/mnreports/ams_2175.pdf",
+  },
+  // ── West Virginia ──
+  {
+    reportId: 1872,
+    name: "Buckhannon Stockyards Livestock Auction",
+    shortName: "Buckhannon (WV)",
+    location: "Buckhannon, WV",
+    auctionDays: ["Wednesday"],
+    categories: ["slaughter_cattle", "feeder_cattle"],
+    pdfUrl: "https://www.ams.usda.gov/mnreports/ams_1872.pdf",
+  },
+  {
+    reportId: 1880,
+    name: "Jackson County Regional Livestock Market",
+    shortName: "Ripley (WV)",
+    location: "Ripley, WV",
+    auctionDays: ["Thursday"],
+    categories: ["slaughter_cattle", "feeder_cattle"],
+    pdfUrl: "https://www.ams.usda.gov/mnreports/ams_1880.pdf",
+  },
+  // ── New York ──
+  {
+    reportId: 1974,
+    name: "Canandaigua Stockyards Livestock Auction",
+    shortName: "Canandaigua (NY)",
+    location: "Canandaigua, NY",
+    auctionDays: ["Monday"],
+    categories: ["slaughter_cattle", "feeder_cattle"],
+    pdfUrl: "https://www.ams.usda.gov/mnreports/ams_1974.pdf",
   },
 ];
 

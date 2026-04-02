@@ -28,7 +28,7 @@ export async function renderDashboard(): Promise<string> {
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BarnSignal — Lancaster County Agricultural Intelligence</title>
+<title>BarnSignal — Mid-Atlantic Livestock Price Intelligence</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -154,6 +154,94 @@ export async function renderDashboard(): Promise<string> {
   /* ── Container ── */
   .container { max-width: 1200px; margin: 0 auto; padding: 24px; }
 
+  /* ── Hero ── */
+  .hero {
+    background: var(--card-bg);
+    border-bottom: 1px solid var(--border);
+    padding: 32px 0;
+  }
+  .hero-inner {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 32px;
+  }
+  .hero-text {
+    max-width: 680px;
+  }
+  .hero-text h2 {
+    font-size: 1.5em;
+    font-weight: 700;
+    line-height: 1.3;
+    margin-bottom: 10px;
+    color: var(--ink);
+  }
+  .hero-text p {
+    font-size: 0.95em;
+    color: var(--ink-light);
+    line-height: 1.6;
+    margin-bottom: 6px;
+  }
+  .hero-text .audience {
+    font-size: 0.82em;
+    color: var(--ink-muted);
+    font-style: italic;
+    margin-top: 8px;
+  }
+  .hero-cta {
+    flex-shrink: 0;
+  }
+  .cta-box {
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px;
+    text-align: center;
+    min-width: 260px;
+  }
+  .cta-box .cta-label {
+    font-size: 0.78em;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--ink-muted);
+    font-weight: 600;
+    margin-bottom: 10px;
+  }
+  .cta-box input[type="email"] {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-family: 'DM Sans', Georgia, serif;
+    font-size: 0.9em;
+    margin-bottom: 8px;
+    outline: none;
+  }
+  .cta-box input[type="email"]:focus { border-color: var(--wheat); }
+  .cta-btn {
+    display: block;
+    width: 100%;
+    padding: 10px;
+    background: var(--field-green);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-family: 'DM Sans', Georgia, serif;
+    font-size: 0.9em;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .cta-btn:hover { background: var(--field-green-light); }
+  .cta-box .cta-note {
+    font-size: 0.72em;
+    color: var(--ink-muted);
+    margin-top: 6px;
+  }
+
   /* ── Alert Banner ── */
   .alert-banner {
     background: var(--card-bg);
@@ -234,7 +322,8 @@ export async function renderDashboard(): Promise<string> {
     background: var(--card-bg);
     border: 1px solid var(--border);
     border-radius: 8px;
-    overflow: hidden;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
     margin-bottom: 16px;
   }
   table {
@@ -390,11 +479,17 @@ export async function renderDashboard(): Promise<string> {
   @media (max-width: 768px) {
     .header-top { flex-direction: column; }
     .header-meta { text-align: left; margin-top: 10px; }
+    .hero-inner { flex-direction: column; }
+    .hero-cta { width: 100%; }
+    .cta-box { min-width: auto; }
     .insights-grid { grid-template-columns: 1fr; }
     .stats-grid { grid-template-columns: repeat(2, 1fr); }
     .barn-grid { grid-template-columns: 1fr; }
     .container { padding: 16px; }
     .logo-area h1 { font-size: 1.5em; }
+    .hero-text h2 { font-size: 1.2em; }
+    table { font-size: 0.78em; }
+    th, td { padding: 8px 10px; white-space: nowrap; }
   }
 </style>
 </head>
@@ -407,7 +502,7 @@ export async function renderDashboard(): Promise<string> {
       <div class="tagline">Your signal before the sale.</div>
     </div>
     <div class="header-meta">
-      <div><span class="live-dot"></span> Live data from USDA &amp; Lancaster County auctions</div>
+      <div><span class="live-dot"></span> Live data from ${BARNS.length} USDA-reported auction barns</div>
       <div style="margin-top:4px;">${new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}</div>
     </div>
   </div>
@@ -420,6 +515,24 @@ export async function renderDashboard(): Promise<string> {
 </header>
 
 ${renderTicker(activeBarns)}
+
+<section class="hero">
+  <div class="hero-inner">
+    <div class="hero-text">
+      <h2>Know before you go &mdash; compare barns, spot trends, and time your buy.</h2>
+      <p>BarnSignal tracks real-time livestock auction prices from USDA-reported sales across Pennsylvania, Maryland, Virginia, West Virginia, and New York. Cross-auction comparison, AI-powered price predictions, and weekly trend analysis &mdash; all in one place.</p>
+      <p class="audience">Built for livestock buyers, meat distributors, auction regulars, and ag professionals.</p>
+    </div>
+    <div class="hero-cta">
+      <div class="cta-box">
+        <div class="cta-label">Get Daily Price Alerts</div>
+        <input type="email" placeholder="your@email.com" id="cta-email" />
+        <button class="cta-btn" onclick="alert('Coming soon &mdash; BarnSignal alerts launch next month.')">Sign Up Free</button>
+        <div class="cta-note">No spam. Auction-day alerts only.</div>
+      </div>
+    </div>
+  </div>
+</section>
 
 <div class="container">
 
@@ -469,7 +582,7 @@ ${renderAccuracy(stats)}
   <div class="footer-inner">
     <div>
       <strong style="color:var(--parchment);">BarnSignal</strong> v1.0<br>
-      Lancaster County Livestock Price Intelligence<br>
+      Mid-Atlantic Livestock Price Intelligence<br>
       <a href="https://github.com/tharmer/barnsignal">GitHub</a>
     </div>
     <div class="disclaimer">
@@ -651,10 +764,13 @@ function renderBarnCard(barn: AuctionEntry): string {
 
 function renderPredictions(predictions: Prediction[]): string {
   if (predictions.length === 0) {
-    return `<div class="insight-card" style="text-align:center; color:var(--ink-muted);">
-  <div class="insight-type trend">Awaiting Data</div>
-  <h3>Predictions will generate after the next data fetch</h3>
-  <p>The AI engine needs at least two weeks of auction data to begin making week-over-week price predictions. Data is accumulating now \u2014 first predictions coming soon.</p>
+    const startDate = new Date("2026-04-06");
+    const estDate = startDate.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+    return `<div class="insight-card" style="color:var(--ink-muted);">
+  <div class="insight-type trend" style="justify-content:center;">&#x1F9E0; AI Signal Engine &mdash; Calibrating</div>
+  <h3 style="text-align:center;">First predictions drop ~${estDate}</h3>
+  <p style="text-align:center;">BarnSignal's prediction engine analyzes momentum, 3-week price trends, supply volume, and seasonal factors across ${BARNS.length} auction barns. It needs at least two weeks of historical data to generate confident signals.</p>
+  <p style="text-align:center; margin-top:10px; font-size:0.85em;"><strong style="color:var(--ink);">What you'll see here:</strong> Up/down/flat calls for every tracked cattle category, confidence scores, and a running accuracy record so you can see exactly how the model performs.</p>
 </div>`;
   }
 
