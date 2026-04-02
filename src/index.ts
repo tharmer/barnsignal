@@ -17,9 +17,10 @@ const app = express();
 
 // ─── Dashboard ───
 
-app.get("/", async (_req, res) => {
+app.get("/", async (req, res) => {
   try {
-    const html = await renderDashboard();
+    const region = (req.query.region as string) || "all";
+    const html = await renderDashboard(region);
     res.setHeader("Content-Type", "text/html; charset=utf-8");
     res.send(html);
   } catch (err) {

@@ -10,10 +10,16 @@ import {
   type AccuracyStats,
 } from "./redis.js";
 
-export async function renderDashboard(): Promise<string> {
-  // Fetch all data
+export async function renderDashboard(activeRegion: string = "all"): Promise<string> {
+  // Determine which barns to show based on region filter
+  const selectedRegion = REGIONS.find((r) => r.id === activeRegion);
+  const filteredBarns = selectedRegion
+    ? BARNS.filter((b) => selectedRegion.reportIds.includes(b.reportId))
+    : BARNS;
+
+  // Fetch data for filtered barns
   const barnData: (AuctionEntry | null)[] = [];
-  for (const barn of BARNS) {
+  for (const barn of filteredBarns) {
     barnData.push(await getLatestAuction(barn.reportId));
   }
 
@@ -22,6 +28,7 @@ export async function renderDashboard(): Promise<string> {
 
   // Active barns with data
   const activeBarns = barnData.filter(Boolean) as AuctionEntry[];
+  const regionLabel = selectedRegion ? selectedRegion.name : "All Regions";
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -175,6 +182,7 @@ export async function renderDashboard(): Promise<string> {
     margin-right: 4px;
   }
   .region-btn {
+    display: inline-block;
     padding: 6px 14px;
     border: 1px solid var(--border);
     border-radius: 20px;
@@ -185,6 +193,7 @@ export async function renderDashboard(): Promise<string> {
     font-weight: 500;
     cursor: pointer;
     transition: all 0.2s;
+    text-decoration: none;
   }
   .region-btn:hover {
     border-color: var(--wheat);
@@ -579,7 +588,7 @@ ${renderTicker(activeBarns)}
   </div>
 </section>
 
-${renderRegionBar()}
+${renderRegionBar(activeRegion)}
 
 <div class="container">
 
@@ -590,7 +599,7 @@ ${renderStatsCards(activeBarns, stats)}
 ${activeBarns.length > 0 ? renderMarketCommentary(activeBarns) : ""}
 
 <div class="section-header">
-  <h2>Cross-Auction Price Comparison</h2>
+  <h2>${activeRegion === "all" ? "Cross-Auction Price Comparison" : regionLabel + " Price Comparison"}</h2>
   <span class="source">Data: USDA AMS Market News</span>
 </div>
 ${activeBarns.length >= 2 ? renderCrossAuctionComparison(activeBarns) : "<p>Collecting data from multiple barns... cross-auction comparison will appear after the next auction cycle.</p>"}
@@ -602,7 +611,7 @@ ${activeBarns.length >= 2 ? renderCrossAuctionComparison(activeBarns) : "<p>Coll
 ${renderPredictions(predictions)}
 
 <div class="section-header">
-  <h2 id="barn-heading">Auction Barn Reports</h2>
+  <h2 id="barn-heading">${activeRegion === "all" ? "Auction Barn Reports" : regionLabel + " Auction Reports"}</h2>
   <span class="source">Most recent sale data</span>
 </div>
 <div class="barn-grid">
@@ -639,41 +648,18 @@ ${renderAccuracy(stats)}
   </div>
 </footer>
 
-<script>
-function filterRegion(regionId) {
-  // Update buttons
-  document.querySelectorAll('.region-btn').forEach(function(btn) {
-    btn.classList.toggle('active', btn.dataset.region === regionId);
-  });
-
-  // Filter barn cards
-  document.querySelectorAll('.barn-card').forEach(function(card) {
-    if (regionId === 'all') {
-      card.style.display = '';
-    } else {
-      card.style.display = card.dataset.region === regionId ? '' : 'none';
-    }
-  });
-
-  // Update heading text
-  var label = regionId === 'all' ? 'All Regions' : document.querySelector('.region-btn[data-region="' + regionId + '"]').textContent;
-  var heading = document.getElementById('barn-heading');
-  if (heading) heading.textContent = regionId === 'all' ? 'Auction Barn Reports' : label + ' Auction Reports';
-}
-</script>
-
 </body>
 </html>`;
 }
 
-function renderRegionBar(): string {
+function renderRegionBar(activeRegion: string): string {
   const buttons = REGIONS.map(
-    (r) => '<button class="region-btn" data-region="' + r.id + '" onclick="filterRegion(\'' + r.id + '\')">' + r.name + '</button>'
+    (r) => '<a class="region-btn' + (activeRegion === r.id ? ' active' : '') + '" href="/?region=' + r.id + '">' + r.name + '</a>'
   ).join("\n    ");
 
   return '<div class="region-bar"><div class="region-bar-inner">' +
     '<span class="region-bar-label">Your Region:</span>' +
-    '<button class="region-btn active" data-region="all" onclick="filterRegion(\'all\')">All Regions</button>' +
+    '<a class="region-btn' + (activeRegion === 'all' ? ' active' : '') + '" href="/">All Regions</a>' +
     '\n    ' + buttons +
     '</div></div>';
 }
