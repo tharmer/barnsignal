@@ -3,7 +3,7 @@
 
 import express from "express";
 import { renderDashboard, renderHayDashboard } from "./dashboard.js";
-import { fetchAllBarns } from "./fetcher.js";
+import { fetchAllBarns, backfillAll } from "./fetcher.js";
 import { generatePredictions, resolvePredictions } from "./predictor.js";
 import {
   getLatestAuction,
@@ -281,6 +281,21 @@ app.get("/api/archive/:reportId", async (req, res) => {
       data: entries,
     });
   } catch (err) {
+    res.status(500).json({ error: (err as Error).message });
+  }
+});
+
+// ─── API: Historical Backfill ───
+
+app.get("/api/backfill", async (req, res) => {
+  try {
+    const begin = (req.query.begin as string) || "01/01/2023";
+    const end = (req.query.end as string) || undefined;
+    console.log(`📜 Backfill triggered: ${begin} → ${end || "today"}`);
+    await backfillAll(begin, end);
+    res.json({ success: true, message: `Backfill complete from ${begin}` });
+  } catch (err) {
+    console.error("Backfill error:", err);
     res.status(500).json({ error: (err as Error).message });
   }
 });
