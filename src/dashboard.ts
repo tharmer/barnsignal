@@ -1212,14 +1212,16 @@ function renderPredictions(predictions: Prediction[]): string {
   <div class="insight-type trend" style="justify-content:center;">&#x1F9E0; AI Signal Engine &mdash; Calibrating</div>
   <h3 style="text-align:center;">First predictions drop ~${estDate}</h3>
   <p style="text-align:center;">BarnSignal's prediction engine analyzes momentum, 3-week price trends, supply volume, and seasonal factors across ${BARNS.length} auction barns. It needs at least two weeks of historical data to generate confident signals.</p>
-  <p style="text-align:center; margin-top:10px; font-size:0.85em;"><strong style="color:var(--ink);">What you'll see here:</strong> Up/down/flat calls for every tracked cattle category, confidence scores, and a running accuracy record so you can see exactly how the model performs.</p>
+  <p style="text-align:center; margin-top:10px; font-size:0.85em;"><strong style="color:var(--ink);">What you'll see here:</strong> Up/down calls for every tracked cattle category, confidence scores, and a running accuracy record so you can see exactly how the model performs.</p>
 </div>`;
   }
 
-  const rows = predictions.slice(0, 30).map((p) => {
-    const dirClass = p.predictedDirection === "up" ? "pred-up" : p.predictedDirection === "down" ? "pred-down" : "pred-flat";
-    const arrow = p.predictedDirection === "up" ? "\u2191" : p.predictedDirection === "down" ? "\u2193" : "\u2192";
-    const trendClass = p.predictedDirection === "up" ? "trend-up" : p.predictedDirection === "down" ? "trend-down" : "trend-neutral";
+  // Filter out legacy "flat" predictions from old 3-class model
+  const filtered = predictions.filter((p) => p.predictedDirection !== "flat");
+  const rows = filtered.slice(0, 30).map((p) => {
+    const dirClass = p.predictedDirection === "up" ? "pred-up" : "pred-down";
+    const arrow = p.predictedDirection === "up" ? "\u2191" : "\u2193";
+    const trendClass = p.predictedDirection === "up" ? "trend-up" : "trend-down";
     const confColor = p.confidence > 60 ? "var(--field-green)" : p.confidence > 40 ? "var(--wheat)" : "var(--ink-muted)";
 
     let statusBadge;
