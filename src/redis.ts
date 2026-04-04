@@ -50,8 +50,11 @@ export async function storeAuctionData(entry: AuctionEntry): Promise<void> {
     member: entry.reportDate,
   });
 
-  // Latest pointer
-  await r.set(`auction:${entry.reportId}:latest`, entry.reportDate);
+  // Latest pointer — only update if this entry is actually newer
+  const currentLatest = await r.get<string>(`auction:${entry.reportId}:latest`);
+  if (!currentLatest || entry.reportDate >= currentLatest) {
+    await r.set(`auction:${entry.reportId}:latest`, entry.reportDate);
+  }
 
   // ─── Durable Archive ───
   // Append to a per-barn archive list that never expires.
