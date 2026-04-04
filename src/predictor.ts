@@ -1,7 +1,7 @@
 // BarnSignal — AI Prediction Engine
 // Analyzes auction data trends and generates price direction predictions
 
-import { BARNS, TRACKED_CATEGORIES } from "./config.js";
+import { BARNS, HAY_BARNS, TRACKED_CATEGORIES, TRACKED_HAY_CATEGORIES } from "./config.js";
 import {
   getLatestAuction,
   getAuctionHistory,
@@ -63,18 +63,54 @@ function getSeasonalFactor(date: string, category: string): number {
   return factor;
 }
 
+function getHaySeasonalFactor(date: string, category: string): number {
+  const month = new Date(date).getMonth(); // 0-11
+
+  // Hay seasonality patterns:
+  // Winter (Dec-Feb): prices firm — low supply, high demand from livestock feeders
+  // Spring (Mar-May): prices start easing as first cutting approaches
+  // Summer (Jun-Aug): prices drop as fresh cuttings flood the market
+  // Fall (Sep-Nov): prices firm again as supply from cuttings tapers off
+
+  const haySeasonalMap: Record<number, number> = {
+    0: 1.0,   // Jan - peak winter demand, tight supply
+    1: 0.5,   // Feb - still firm, waiting on spring
+    2: 0,     // Mar - transitioning, new crop anticipation
+    3: -0.5,  // Apr - first cutting approaching
+    4: -1.0,  // May - first cutting hits market
+    5: -1.5,  // Jun - peak supply from first cutting
+    6: -1.0,  // Jul - second cutting, ample supply
+    7: -0.5,  // Aug - supply still good but easing
+    8: 0,     // Sep - transition, fewer cuttings remaining
+    9: 0.5,   // Oct - supply tightening
+    10: 1.0,  // Nov - winter demand building
+    11: 1.0,  // Dec - peak winter pricing
+  };
+
+  let factor = haySeasonalMap[month] || 0;
+
+  // Straw follows grain harvest cycles — cheaper in summer/fall after harvest
+  if (category.includes("Straw") || category.includes("Corn Stalk")) {
+    factor = month >= 7 && month <= 10 ? -1.0 : month >= 0 && month <= 3 ? 0.5 : 0;
+  }
+
+  return factor;
+}
+
 function analyzeTrend(
   category: string,
   history: AuctionEntry[],
-  barnName: string
+  barnName: string,
+  isHay: boolean = false,
 ): TrendSignal | null {
   // Get this category's data across weeks
   const dataPoints: { date: string; avgPrice: number; head: number; totalReceipts: number }[] = [];
 
   for (const entry of history) {
-    const catData = entry.categories.find(
-      (c) => c.category === category && c.dressing === "Average"
-    );
+    // Hay uses dressing="Per Ton", cattle uses dressing="Average"
+    const catData = isHay
+      ? entry.categories.find((c) => c.category === category && c.dressing === "Per Ton")
+      : entry.categories.find((c) => c.category === category && c.dressing === "Average");
     if (catData) {
       dataPoints.push({
         date: entry.reportDate,
@@ -94,13 +130,17 @@ function analyzeTrend(
     ((current.avgPrice - previous.avgPrice) / previous.avgPrice) * 100;
 
   const receiptChange =
-    ((current.totalReceipts - previous.totalReceipts) / previous.totalReceipts) * 100;
+    previous.totalReceipts > 0
+      ? ((current.totalReceipts - previous.totalReceipts) / previous.totalReceipts) * 100
+      : 0;
 
   const priceHistory = dataPoints.map((d) => d.avgPrice);
   const receiptsTrend = dataPoints.map((d) => d.totalReceipts);
 
-  // Seasonal factor
-  const seasonalFactor = getSeasonalFactor(current.date, category);
+  // Seasonal factor — use hay-specific or cattle-specific
+  const seasonalFactor = isHay
+    ? getHaySeasonalFactor(current.date, category)
+    : getSeasonalFactor(current.date, category);
 
   // ─── Prediction Logic ───
   // Combine multiple signals:
@@ -137,12 +177,13 @@ function analyzeTrend(
   }
 
   // Signal 3: Supply pressure (weight: 25%)
+  const supplyUnit = isHay ? "tonnage" : "supply";
   if (receiptChange < -10) {
-    score += 1.5; // fewer cattle = upward price pressure
-    reasons.push(`supply down ${Math.abs(receiptChange).toFixed(0)}% (bullish)`);
+    score += 1.5; // fewer receipts = upward price pressure
+    reasons.push(`${supplyUnit} down ${Math.abs(receiptChange).toFixed(0)}% (bullish)`);
   } else if (receiptChange > 10) {
-    score -= 1.5; // more cattle = downward price pressure
-    reasons.push(`supply up ${receiptChange.toFixed(0)}% (bearish)`);
+    score -= 1.5; // more receipts = downward price pressure
+    reasons.push(`${supplyUnit} up ${receiptChange.toFixed(0)}% (bearish)`);
   }
 
   // Signal 4: Seasonal (weight: 20%)
@@ -257,6 +298,61 @@ export async function generatePredictions(): Promise<Prediction[]> {
     }
   }
 
+  // ─── Hay Predictions ───
+
+  for (const barn of HAY_BARNS) {
+    const history = await getAuctionHistory(barn.reportId, 8);
+    if (history.length === 0) {
+      console.log(`⏭️  No history for ${barn.shortName}, skipping hay predictions`);
+      continue;
+    }
+
+    const latest = history[0];
+    console.log(`\n🌾 Generating hay predictions for ${barn.shortName} (${latest.reportDate})...`);
+
+    for (const trackedCat of TRACKED_HAY_CATEGORIES) {
+      const signal = analyzeTrend(trackedCat, history, barn.shortName, true);
+      if (!signal) continue;
+
+      const latestDate = new Date(latest.reportDate);
+      const nextDate = new Date(latestDate);
+      nextDate.setDate(nextDate.getDate() + 7);
+      const targetDate = nextDate.toISOString().split("T")[0];
+
+      const catSlug = trackedCat.replace(/[^a-zA-Z0-9]/g, "-");
+      const predId = `pred:${barn.reportId}:${catSlug}:${targetDate}`;
+
+      const changeMultiplier = signal.direction === "up" ? 1 : signal.direction === "down" ? -1 : 0;
+      const expectedChange = signal.currentPrice * (changeMultiplier * 0.03); // ~3% move for hay (more volatile)
+      const predictedLow = signal.currentPrice + expectedChange * 0.5;
+      const predictedHigh = signal.currentPrice + expectedChange * 1.5;
+
+      const pred: Prediction = {
+        id: predId,
+        reportId: barn.reportId,
+        barnName: barn.shortName,
+        category: trackedCat,
+        predictionDate: now,
+        targetDate,
+        currentAvgPrice: signal.currentPrice,
+        predictedDirection: signal.direction,
+        predictedChangePercent: changeMultiplier * 3,
+        predictedPriceRange: `${predictedLow.toFixed(2)}-${predictedHigh.toFixed(2)}`,
+        confidence: signal.confidence,
+        reasoning: signal.reasoning,
+        resolved: false,
+      };
+
+      await storePrediction(pred);
+      predictions.push(pred);
+
+      const arrow = signal.direction === "up" ? "📈" : signal.direction === "down" ? "📉" : "➡️";
+      console.log(
+        `  ${arrow} ${trackedCat}: $${signal.currentPrice.toFixed(2)}/ton → ${signal.direction} (${signal.confidence}% conf)`
+      );
+    }
+  }
+
   console.log(`\n✅ Generated ${predictions.length} predictions`);
   return predictions;
 }
@@ -276,8 +372,10 @@ export async function resolvePredictions(): Promise<{ resolved: number; correct:
     if (!latest || latest.reportDate < pred.targetDate) continue;
 
     // Find the matching category in actual data
+    // Hay barns use "Per Ton" dressing, cattle use "Average"
+    const isHayBarn = HAY_BARNS.some((b) => b.reportId === pred.reportId);
     const actualCat = latest.categories.find(
-      (c) => c.category === pred.category && c.dressing === "Average"
+      (c) => c.category === pred.category && c.dressing === (isHayBarn ? "Per Ton" : "Average")
     );
     if (!actualCat) continue;
 
