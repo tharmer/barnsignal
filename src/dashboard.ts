@@ -1599,9 +1599,11 @@ function renderHayPredictions(predictions: Prediction[]): string {
 </div>`;
   }
 
-  const rows = predictions.slice(0, 30).map((p) => {
-    const arrow = p.predictedDirection === "up" ? "\u2191" : p.predictedDirection === "down" ? "\u2193" : "\u2192";
-    const trendClass = p.predictedDirection === "up" ? "trend-up" : p.predictedDirection === "down" ? "trend-down" : "trend-neutral";
+  // Filter out legacy "flat" predictions from old 3-class model
+  const filtered = predictions.filter((p) => p.predictedDirection !== "flat");
+  const rows = filtered.slice(0, 30).map((p) => {
+    const arrow = p.predictedDirection === "up" ? "\u2191" : "\u2193";
+    const trendClass = p.predictedDirection === "up" ? "trend-up" : "trend-down";
     const confColor = p.confidence > 60 ? "var(--field-green)" : p.confidence > 40 ? "var(--wheat)" : "var(--ink-muted)";
 
     let statusBadge;
