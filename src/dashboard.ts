@@ -1648,7 +1648,14 @@ export async function renderHayDashboard(): Promise<string> {
     barnData.push(await getLatestAuction(barn.reportId));
   }
 
-  const activeBarns = barnData.filter(Boolean) as AuctionEntry[];
+  // Filter out stale data — only show auctions with reports from the last 30 days
+  const thirtyDaysAgo = new Date();
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+  const cutoff = thirtyDaysAgo.toISOString().split("T")[0];
+
+  const activeBarns = (barnData.filter(Boolean) as AuctionEntry[]).filter(
+    (b) => b.reportDate >= cutoff
+  );
 
   return `<!DOCTYPE html>
 <html lang="en">
