@@ -240,6 +240,11 @@ export async function generatePredictions(): Promise<Prediction[]> {
   const predictions: Prediction[] = [];
   const now = new Date().toISOString();
 
+  // Staleness cutoff: skip barns with no data in the last 30 days
+  const thirtyDaysAgo = new Date();
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+  const staleCutoff = thirtyDaysAgo.toISOString().split("T")[0];
+
   for (const barn of BARNS) {
     // Skip non-cattle barns for now
     if (!barn.categories.includes("slaughter_cattle")) continue;
@@ -251,6 +256,10 @@ export async function generatePredictions(): Promise<Prediction[]> {
     }
 
     const latest = history[0];
+    if (latest.reportDate < staleCutoff) {
+      console.log(`⏭️  ${barn.shortName} data is stale (${latest.reportDate}), skipping`);
+      continue;
+    }
     console.log(`\n🔮 Generating predictions for ${barn.shortName} (${latest.reportDate})...`);
 
     for (const trackedCat of TRACKED_CATEGORIES) {
@@ -308,6 +317,10 @@ export async function generatePredictions(): Promise<Prediction[]> {
     }
 
     const latest = history[0];
+    if (latest.reportDate < staleCutoff) {
+      console.log(`⏭️  ${barn.shortName} data is stale (${latest.reportDate}), skipping`);
+      continue;
+    }
     console.log(`\n🌾 Generating hay predictions for ${barn.shortName} (${latest.reportDate})...`);
 
     for (const trackedCat of TRACKED_HAY_CATEGORIES) {
