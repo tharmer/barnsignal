@@ -1,6 +1,6 @@
 // BarnSignal — Dashboard HTML Generator
 
-import { BARNS, REGIONS } from "./config.js";
+import { BARNS, REGIONS, HAY_BARNS } from "./config.js";
 import {
   getLatestAuction,
   getAllPredictions,
@@ -596,6 +596,36 @@ export async function renderDashboard(activeRegion: string = "all"): Promise<str
     font-style: italic;
   }
 
+  /* ── Tab Navigation ── */
+  .tab-bar {
+    background: var(--ink);
+    border-top: 1px solid rgba(255,255,255,0.08);
+  }
+  .tab-bar-inner {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 24px;
+    display: flex;
+    gap: 0;
+  }
+  .tab-link {
+    display: inline-block;
+    padding: 12px 24px;
+    color: #a09880;
+    text-decoration: none;
+    font-size: 0.88em;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+    border-bottom: 3px solid transparent;
+    transition: all 0.2s;
+  }
+  .tab-link:hover { color: var(--parchment); }
+  .tab-link.active {
+    color: var(--wheat);
+    border-bottom-color: var(--wheat);
+  }
+  .tab-link .tab-icon { margin-right: 6px; }
+
   /* ── Responsive ── */
   @media (max-width: 768px) {
     .header-top { flex-direction: column; }
@@ -623,8 +653,14 @@ export async function renderDashboard(activeRegion: string = "all"): Promise<str
       <div class="tagline">Your signal before the sale.</div>
     </div>
     <div class="header-meta">
-      <div><span class="live-dot"></span> Live data from ${BARNS.length} USDA-reported auction barns</div>
+      <div><span class="live-dot"></span> Live data from ${BARNS.length + HAY_BARNS.length} USDA-reported auctions</div>
       <div style="margin-top:4px;">${new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}</div>
+    </div>
+  </div>
+  <div class="tab-bar">
+    <div class="tab-bar-inner">
+      <a class="tab-link active" href="/"><span class="tab-icon">&#x1F404;</span>Cattle</a>
+      <a class="tab-link" href="/hay"><span class="tab-icon">&#x1F33E;</span>Hay &amp; Straw</a>
     </div>
   </div>
 </header>
@@ -1270,4 +1306,546 @@ ${barnRows ? `
 ${barnRows}
 </table></div>` : ""}
 `;
+}
+
+// ═══════════════════════════════════════════════════════
+// HAY DASHBOARD
+// ═══════════════════════════════════════════════════════
+
+function renderHayCrossComparison(barns: AuctionEntry[]): string {
+  const categoryMap = new Map<string, { barn: string; avgPrice: number; qty: number; baleType: string }[]>();
+
+  for (const barn of barns) {
+    for (const cat of barn.categories) {
+      if (!categoryMap.has(cat.category)) categoryMap.set(cat.category, []);
+      categoryMap.get(cat.category)!.push({
+        barn: barn.barnName,
+        avgPrice: cat.avgPrice,
+        qty: cat.head,
+        baleType: cat.wtRange || "Large Square",
+      });
+    }
+  }
+
+  const sharedCategories = [...categoryMap.entries()]
+    .filter(([_, data]) => data.length >= 2)
+    .slice(0, 20);
+
+  const barnNames = [...new Set(barns.map((b) => b.barnName))];
+
+  if (sharedCategories.length === 0) {
+    const cats = barns.flatMap((b) =>
+      b.categories.slice(0, 10).map((c) => ({ barn: b.barnName, ...c }))
+    );
+    return `<div class="price-table-wrap"><table>
+<tr><th>Category</th><th>Barn</th><th>Bale Type</th><th>Avg Price</th><th>Tons</th></tr>
+${cats.map((c) => `<tr><td class="category-cell">${c.category}</td><td>${c.barn}</td><td>${c.wtRange}</td><td class="price-cell">$${c.avgPrice.toFixed(2)}/ton</td><td>${c.head}</td></tr>`).join("\n")}
+</table></div>
+<p style="font-size:0.8rem; color:var(--ink-muted); margin-top:0.5rem;">Cross-auction comparison unlocks when multiple auctions report the same hay categories.</p>`;
+  }
+
+  let rows = "";
+  for (const [category, data] of sharedCategories) {
+    const prices = data.map((d) => d.avgPrice);
+    const minPrice = Math.min(...prices);
+    const maxPrice = Math.max(...prices);
+    const spread = maxPrice - minPrice;
+
+    rows += `<tr><td class="category-cell">${category}</td>`;
+    for (const barnName of barnNames) {
+      const barnData = data.find((d) => d.barn === barnName);
+      if (barnData) {
+        const isBest = barnData.avgPrice === minPrice && spread > 2;
+        rows += `<td class="${isBest ? "best-price" : ""} price-cell">$${barnData.avgPrice.toFixed(2)} <span style="font-size:0.72em;color:var(--ink-muted)">(${barnData.qty}t)</span></td>`;
+      } else {
+        rows += `<td style="color:var(--border)">\u2014</td>`;
+      }
+    }
+    rows += `<td class="price-cell" style="color:${spread > 10 ? "var(--barn-red)" : "var(--ink-muted)"}">$${spread.toFixed(2)}</td></tr>`;
+  }
+
+  return `<div class="price-table-wrap"><table>
+<tr><th>Category</th>${barnNames.map((n) => `<th>${n}</th>`).join("")}<th>Spread</th></tr>
+${rows}
+</table></div>
+<p style="font-size:0.78em; color:var(--ink-muted); margin-top:8px; font-style:italic;">Green highlight = lowest price (best buy). Spread shows the price gap \u2014 larger spreads signal an opportunity worth the drive. All prices are historical per-ton averages from USDA reports.</p>`;
+}
+
+function renderHayBarnCard(barn: AuctionEntry): string {
+  const byBale = new Map<string, typeof barn.categories>();
+  for (const cat of barn.categories) {
+    const bale = cat.wtRange || "Other";
+    if (!byBale.has(bale)) byBale.set(bale, []);
+    byBale.get(bale)!.push(cat);
+  }
+
+  let tablesHtml = "";
+  for (const [baleType, cats] of byBale) {
+    tablesHtml += `<h4 style="margin:12px 14px 6px; font-size:0.85em; color:var(--ink-light);">${baleType}</h4>
+<table>
+  <tr><th>Category</th><th>Tons</th><th>Price Range</th><th>Avg $/Ton</th></tr>
+  ${cats.map((c) => `<tr><td class="category-cell">${c.category}</td><td>${c.head}</td><td class="price-cell">${c.priceRange}</td><td class="price-cell" style="font-weight:700">$${c.avgPrice.toFixed(2)}</td></tr>`).join("\n")}
+</table>`;
+  }
+
+  return `
+<div class="barn-card">
+  <div class="barn-card-header" style="background:var(--soil);">
+    <h3>${barn.barnName}</h3>
+    <div class="meta">${barn.location} | ${barn.reportDate} | ${barn.totalReceipts} tons</div>
+  </div>
+  ${tablesHtml}
+</div>`;
+}
+
+function renderHayCalculator(barns: AuctionEntry[]): string {
+  if (barns.length < 2) return "";
+
+  const barnCoords = HAY_BARNS.map((b) => ({
+    reportId: b.reportId,
+    shortName: b.shortName,
+    lat: b.lat,
+    lng: b.lng,
+  }));
+
+  const catMap = new Map<string, { barn: string; reportId: number; avgPrice: number }[]>();
+  for (const barn of barns) {
+    for (const cat of barn.categories) {
+      if (!catMap.has(cat.category)) catMap.set(cat.category, []);
+      catMap.get(cat.category)!.push({ barn: barn.barnName, reportId: barn.reportId, avgPrice: cat.avgPrice });
+    }
+  }
+  const sharedCats = [...catMap.entries()].filter(([_, d]) => d.length >= 2).map(([name]) => name).slice(0, 20);
+
+  if (sharedCats.length === 0) return "";
+
+  const catOptions = sharedCats.map(
+    (c) => '<option value="' + c.replace(/"/g, "&quot;") + '">' + c + '</option>'
+  ).join("");
+
+  const priceData: Record<string, Record<number, number>> = {};
+  for (const [cat, entries] of catMap.entries()) {
+    priceData[cat] = {};
+    for (const e of entries) {
+      priceData[cat][e.reportId] = e.avgPrice;
+    }
+  }
+
+  return `
+<div class="section-header">
+  <h2>Hay Net Price Calculator</h2>
+  <span class="source">Factor in your hauling costs</span>
+</div>
+<div class="calc-box">
+  <h3>Which auction puts the most in your pocket per ton?</h3>
+  <div class="calc-desc">Enter your zip code and load details. We'll calculate round-trip hauling costs and show you the net price per ton at each auction. <em>Prices are historical averages from USDA reports, not quotes.</em></div>
+  <div class="calc-inputs">
+    <div class="calc-field">
+      <label>Your Zip Code</label>
+      <input type="text" id="hay-calc-zip" placeholder="17557" maxlength="5" style="width:90px;" />
+    </div>
+    <div class="calc-field">
+      <label>Hay Type</label>
+      <select id="hay-calc-category" style="min-width:200px;">
+        ${catOptions}
+      </select>
+    </div>
+    <div class="calc-field">
+      <label>Tons</label>
+      <input type="number" id="hay-calc-tons" value="20" min="1" max="100" style="width:70px;" />
+    </div>
+    <div class="calc-field">
+      <label>Diesel $/gal</label>
+      <input type="number" id="hay-calc-diesel" value="3.85" min="1" max="8" step="0.05" style="width:80px;" />
+    </div>
+    <button class="calc-go" onclick="runHayCalc()">Calculate Net Price</button>
+  </div>
+  <div class="calc-result" id="hay-calc-result"></div>
+</div>
+
+<script>
+var HAY_BARN_COORDS = ${JSON.stringify(barnCoords)};
+var HAY_PRICE_DATA = ${JSON.stringify(priceData)};
+
+function zipToLatLngHay(zip) {
+  var prefix = parseInt(zip.substring(0, 3));
+  var regions = [
+    [150,159, 40.44, -79.99], [160,169, 40.85, -78.75], [170,179, 40.27, -76.88],
+    [180,189, 40.60, -75.47], [190,196, 39.95, -75.17], [197,199, 39.16, -75.52],
+    [200,205, 38.90, -77.03], [206,219, 39.05, -77.15], [220,246, 38.85, -77.30],
+    [247,268, 37.80, -79.45], [100,119, 40.71, -74.01], [120,129, 42.65, -73.75],
+    [130,139, 43.05, -76.15], [140,149, 42.89, -78.88], [250,268, 38.35, -81.63],
+    [430,439, 39.96, -82.99], [440,449, 41.50, -81.69], [210,219, 39.29, -76.61],
+  ];
+  for (var i = 0; i < regions.length; i++) {
+    if (prefix >= regions[i][0] && prefix <= regions[i][1]) {
+      return { lat: regions[i][2], lng: regions[i][3] };
+    }
+  }
+  return { lat: 39.95, lng: -77.50 };
+}
+
+function haversineHay(lat1, lng1, lat2, lng2) {
+  var R = 3959;
+  var dLat = (lat2 - lat1) * Math.PI / 180;
+  var dLng = (lng2 - lng1) * Math.PI / 180;
+  var a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+          Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+          Math.sin(dLng/2) * Math.sin(dLng/2);
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
+function runHayCalc() {
+  var zip = document.getElementById('hay-calc-zip').value.trim();
+  var category = document.getElementById('hay-calc-category').value;
+  var tons = parseFloat(document.getElementById('hay-calc-tons').value) || 20;
+  var diesel = parseFloat(document.getElementById('hay-calc-diesel').value) || 3.85;
+  var resultDiv = document.getElementById('hay-calc-result');
+
+  if (!zip || zip.length < 5) {
+    resultDiv.innerHTML = '<div style="color:var(--barn-red); font-size:0.9em;">Please enter a 5-digit zip code.</div>';
+    resultDiv.classList.add('visible');
+    return;
+  }
+
+  var origin = zipToLatLngHay(zip);
+  var prices = HAY_PRICE_DATA[category];
+  if (!prices) {
+    resultDiv.innerHTML = '<div style="color:var(--barn-red); font-size:0.9em;">No price data for that category.</div>';
+    resultDiv.classList.add('visible');
+    return;
+  }
+
+  var MPG = 5.5;
+  var ROAD_FACTOR = 1.3;
+
+  var results = [];
+  for (var i = 0; i < HAY_BARN_COORDS.length; i++) {
+    var barn = HAY_BARN_COORDS[i];
+    var price = prices[barn.reportId];
+    if (price === undefined) continue;
+
+    var crowMiles = haversineHay(origin.lat, origin.lng, barn.lat, barn.lng);
+    var roadMiles = crowMiles * ROAD_FACTOR;
+    var roundTrip = roadMiles * 2;
+    var fuelCost = (roundTrip / MPG) * diesel;
+
+    var grossValue = price * tons;
+    var netValue = grossValue - fuelCost;
+    var netPerTon = price - (fuelCost / tons);
+
+    results.push({
+      name: barn.shortName,
+      distance: Math.round(roadMiles),
+      roundTrip: Math.round(roundTrip),
+      fuelCost: fuelCost,
+      grossPrice: price,
+      netPerTon: netPerTon,
+      grossValue: grossValue,
+      netValue: netValue,
+    });
+  }
+
+  results.sort(function(a, b) { return b.netValue - a.netValue; });
+
+  if (results.length === 0) {
+    resultDiv.innerHTML = '<div style="color:var(--ink-muted); font-size:0.9em;">No auctions have data for this category.</div>';
+    resultDiv.classList.add('visible');
+    return;
+  }
+
+  var best = results[0];
+  var savings = results.length > 1 ? best.netValue - results[1].netValue : 0;
+
+  var html = '<div class="calc-best"><strong>' + best.name + ' is your best net price for ' + category + '.</strong><br>';
+  html += 'Net $' + best.netPerTon.toFixed(2) + '/ton after $' + best.fuelCost.toFixed(0) + ' in fuel (' + best.roundTrip + ' mi round trip).';
+  if (savings > 20) {
+    html += '<br>That\\'s <strong>$' + savings.toFixed(0) + ' more per load</strong> than the next-best option.';
+  }
+  html += '</div>';
+
+  html += '<div class="price-table-wrap"><table>';
+  html += '<tr><th>Auction</th><th>Distance</th><th>Round Trip</th><th>Fuel Cost</th><th>Gross $/Ton</th><th>Net $/Ton</th><th>Net Load Value</th></tr>';
+  for (var j = 0; j < results.length; j++) {
+    var r = results[j];
+    var rowClass = j === 0 ? ' class="net-best"' : '';
+    html += '<tr' + rowClass + '>';
+    html += '<td class="category-cell">' + r.name + '</td>';
+    html += '<td>' + r.distance + ' mi</td>';
+    html += '<td>' + r.roundTrip + ' mi</td>';
+    html += '<td class="price-cell" style="color:var(--barn-red)">-$' + r.fuelCost.toFixed(0) + '</td>';
+    html += '<td class="price-cell">$' + r.grossPrice.toFixed(2) + '</td>';
+    html += '<td class="price-cell" style="font-weight:700">$' + r.netPerTon.toFixed(2) + '</td>';
+    html += '<td class="price-cell" style="font-weight:700">$' + r.netValue.toFixed(0) + '</td>';
+    html += '</tr>';
+  }
+  html += '</table></div>';
+  html += '<p style="font-size:0.72em; color:var(--ink-muted); margin-top:6px; font-style:italic;">Estimates based on ' + MPG + ' mpg loaded flatbed, ' + ROAD_FACTOR + 'x road factor, $' + diesel.toFixed(2) + '/gal diesel. Actual costs will vary.</p>';
+  html += '<p style="font-size:0.72em; color:var(--barn-red); margin-top:4px; font-weight:500;"><strong>Not a price quote.</strong> Prices shown are historical per-ton averages from USDA-reported sales. Actual prices vary by hay quality, moisture content, bale weight, and buyer demand.</p>';
+
+  resultDiv.innerHTML = html;
+  resultDiv.classList.add('visible');
+}
+</script>`;
+}
+
+function renderHayStatsCards(barns: AuctionEntry[]): string {
+  const totalTons = barns.reduce((sum, b) => sum + b.totalReceipts, 0);
+  const totalCategories = barns.reduce((sum, b) => sum + b.categories.length, 0);
+
+  const allCats = barns.flatMap((b) => b.categories);
+  const hayOnly = allCats.filter((c) => c.category.toLowerCase().includes("alfalfa") || c.category.toLowerCase().includes("grass") || c.category.toLowerCase().includes("orchard"));
+  const strawOnly = allCats.filter((c) => c.category.toLowerCase().includes("straw") || c.category.toLowerCase().includes("corn stalk"));
+
+  const avgHayPrice = hayOnly.length > 0 ? hayOnly.reduce((s, c) => s + c.avgPrice, 0) / hayOnly.length : 0;
+  const avgStrawPrice = strawOnly.length > 0 ? strawOnly.reduce((s, c) => s + c.avgPrice, 0) / strawOnly.length : 0;
+
+  return `
+<div class="stats-grid">
+  <div class="stat-card">
+    <div class="stat-label">Hay Auctions</div>
+    <div class="stat-value">${barns.length}</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Tons This Week</div>
+    <div class="stat-value">${totalTons.toLocaleString()}</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Avg Hay $/Ton</div>
+    <div class="stat-value">${avgHayPrice > 0 ? "$" + avgHayPrice.toFixed(0) : "\u2014"}</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Avg Straw $/Ton</div>
+    <div class="stat-value">${avgStrawPrice > 0 ? "$" + avgStrawPrice.toFixed(0) : "\u2014"}</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Categories</div>
+    <div class="stat-value">${totalCategories}</div>
+  </div>
+</div>`;
+}
+
+function renderHayTicker(barns: AuctionEntry[]): string {
+  if (barns.length === 0) return "";
+
+  const items: string[] = [];
+  for (const barn of barns) {
+    for (const cat of barn.categories.slice(0, 8)) {
+      const priceStr = "$" + cat.avgPrice.toFixed(0) + "/ton";
+      items.push(
+        '<span class="ticker-item"><span class="name">' + barn.barnName + '</span> ' + cat.category + ': <span class="neutral">' + priceStr + '</span> (' + cat.head + 't)</span>'
+      );
+    }
+  }
+
+  const allItems = items.join("") + items.join("");
+  return '<div class="ticker"><div class="ticker-inner">' + allItems + '</div></div>';
+}
+
+export async function renderHayDashboard(): Promise<string> {
+  const barnData: (AuctionEntry | null)[] = [];
+  for (const barn of HAY_BARNS) {
+    barnData.push(await getLatestAuction(barn.reportId));
+  }
+
+  const activeBarns = barnData.filter(Boolean) as AuctionEntry[];
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BarnSignal — Hay &amp; Straw Auction Prices | Lancaster County PA</title>
+<meta name="description" content="Compare hay and straw auction prices across Lancaster County PA. Per-ton pricing by bale type from Wolgemuth and Kirkwood hay auctions. USDA data, updated weekly.">
+<meta property="og:title" content="BarnSignal — Hay & Straw Prices">
+<meta property="og:description" content="Cross-auction hay price comparison from USDA-reported auctions in Lancaster County PA. Per-ton pricing by bale type.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://barnsignal.com/hay">
+<link rel="canonical" href="https://barnsignal.com/hay">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  :root { --parchment: #f5f0e8; --parchment-dark: #e8e0d0; --ink: #2c2416; --ink-light: #5a4e3a; --ink-muted: #8a7e6a; --barn-red: #8b2500; --barn-red-light: #a83a15; --field-green: #3a6b35; --field-green-light: #4a8b45; --wheat: #c4a55a; --wheat-light: #d4b56a; --sky: #4a7fa5; --soil: #6b5344; --border: #d4cbb8; --card-bg: #faf7f0; --shadow: rgba(44, 36, 22, 0.08); }
+  body { font-family: 'DM Sans', Georgia, serif; background: var(--parchment); color: var(--ink); line-height: 1.6; }
+  header { background: var(--ink); color: var(--parchment); padding: 0; }
+  .header-top { max-width: 1200px; margin: 0 auto; padding: 16px 24px; display: flex; justify-content: space-between; align-items: center; }
+  .logo-area h1 { font-size: 2em; font-weight: 700; letter-spacing: -0.5px; line-height: 1; }
+  .logo-area h1 span { color: var(--wheat); }
+  .logo-area .tagline { font-size: 0.85em; color: #a09880; margin-top: 4px; font-style: italic; }
+  .header-meta { text-align: right; font-size: 0.82em; color: #a09880; }
+  .header-meta .live-dot { display: inline-block; width: 8px; height: 8px; background: var(--field-green-light); border-radius: 50%; margin-right: 6px; animation: pulse 2s infinite; }
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+  .tab-bar { background: var(--ink); border-top: 1px solid rgba(255,255,255,0.08); }
+  .tab-bar-inner { max-width: 1200px; margin: 0 auto; padding: 0 24px; display: flex; gap: 0; }
+  .tab-link { display: inline-block; padding: 12px 24px; color: #a09880; text-decoration: none; font-size: 0.88em; font-weight: 600; letter-spacing: 0.3px; border-bottom: 3px solid transparent; transition: all 0.2s; }
+  .tab-link:hover { color: var(--parchment); }
+  .tab-link.active { color: var(--wheat); border-bottom-color: var(--wheat); }
+  .tab-link .tab-icon { margin-right: 6px; }
+  .ticker { background: #1a1610; padding: 10px 0; overflow: hidden; white-space: nowrap; border-bottom: 2px solid var(--soil); }
+  .ticker-inner { display: inline-block; animation: ticker-scroll 200s linear infinite; }
+  .ticker-item { display: inline-block; margin-right: 40px; font-family: 'DM Mono', monospace; font-size: 0.82em; color: #c0b8a0; }
+  .ticker-item .name { color: var(--soil); font-weight: 500; }
+  .ticker-item .neutral { color: var(--ink-muted); }
+  @keyframes ticker-scroll { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
+  .hero { background: var(--card-bg); border-bottom: 1px solid var(--border); padding: 32px 0; }
+  .hero-inner { max-width: 1200px; margin: 0 auto; padding: 0 24px; display: flex; justify-content: space-between; align-items: center; gap: 32px; }
+  .hero-text { max-width: 680px; }
+  .hero-text h2 { font-size: 1.5em; font-weight: 700; line-height: 1.3; margin-bottom: 10px; }
+  .hero-text p { font-size: 0.95em; color: var(--ink-light); line-height: 1.6; margin-bottom: 6px; }
+  .hero-text .audience { font-size: 0.82em; color: var(--ink-muted); font-style: italic; margin-top: 8px; }
+  .hero-cta { flex-shrink: 0; }
+  .cta-box { background: white; border: 1px solid var(--border); border-radius: 8px; padding: 20px; text-align: center; min-width: 260px; }
+  .cta-box .cta-label { font-size: 0.78em; text-transform: uppercase; letter-spacing: 0.8px; color: var(--ink-muted); font-weight: 600; margin-bottom: 10px; }
+  .cta-box input[type="email"] { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 6px; font-family: 'DM Sans', Georgia, serif; font-size: 0.9em; margin-bottom: 8px; outline: none; }
+  .cta-box input[type="email"]:focus { border-color: var(--wheat); }
+  .cta-btn { display: block; width: 100%; padding: 10px; background: var(--soil); color: white; border: none; border-radius: 6px; font-family: 'DM Sans', Georgia, serif; font-size: 0.9em; font-weight: 600; cursor: pointer; }
+  .cta-btn:hover { background: var(--ink-light); }
+  .cta-box .cta-note { font-size: 0.72em; color: var(--ink-muted); margin-top: 6px; }
+  .container { max-width: 1200px; margin: 0 auto; padding: 24px; }
+  .section-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 16px; margin-top: 32px; border-bottom: 2px solid var(--ink); padding-bottom: 8px; }
+  .section-header h2 { font-size: 1.2em; font-weight: 700; }
+  .section-header .source { font-size: 0.75em; color: var(--ink-muted); font-style: italic; }
+  .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; margin-bottom: 28px; }
+  .stat-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 8px; padding: 16px; }
+  .stat-card .stat-label { font-size: 0.75em; text-transform: uppercase; letter-spacing: 0.8px; color: var(--ink-muted); font-weight: 600; }
+  .stat-card .stat-value { font-size: 1.8em; font-weight: 700; font-family: 'DM Mono', monospace; line-height: 1.2; margin-top: 4px; }
+  .price-table-wrap { background: var(--card-bg); border: 1px solid var(--border); border-radius: 8px; overflow-x: auto; margin-bottom: 16px; }
+  table { width: 100%; border-collapse: collapse; font-size: 0.88em; }
+  th { background: var(--ink); color: var(--parchment); text-align: left; padding: 10px 14px; font-size: 0.78em; text-transform: uppercase; letter-spacing: 0.8px; font-weight: 600; }
+  td { padding: 10px 14px; border-bottom: 1px solid var(--border); }
+  tr:last-child td { border-bottom: none; }
+  tr:hover { background: var(--parchment); }
+  .category-cell { font-weight: 600; color: var(--ink); }
+  .price-cell { font-family: 'DM Mono', monospace; font-weight: 500; }
+  .best-price { background: rgba(58, 107, 53, 0.08); color: var(--field-green); font-weight: 700; }
+  .barn-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 20px; margin-top: 16px; }
+  .barn-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+  .barn-card-header { background: var(--soil); color: white; padding: 14px 18px; }
+  .barn-card-header h3 { font-size: 1em; font-weight: 700; }
+  .barn-card-header .meta { font-size: 0.78em; opacity: 0.85; margin-top: 4px; }
+  .calc-box { background: var(--card-bg); border: 1px solid var(--border); border-radius: 8px; padding: 20px; margin-bottom: 24px; }
+  .calc-box h3 { font-size: 1.05em; margin-bottom: 8px; }
+  .calc-desc { font-size: 0.88em; color: var(--ink-light); margin-bottom: 16px; line-height: 1.5; }
+  .calc-inputs { display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-end; margin-bottom: 16px; }
+  .calc-field label { display: block; font-size: 0.75em; text-transform: uppercase; letter-spacing: 0.5px; color: var(--ink-muted); font-weight: 600; margin-bottom: 4px; }
+  .calc-field input, .calc-field select { padding: 8px 10px; border: 1px solid var(--border); border-radius: 6px; font-family: 'DM Sans', Georgia, serif; font-size: 0.88em; }
+  .calc-go { padding: 8px 20px; background: var(--soil); color: white; border: none; border-radius: 6px; font-family: 'DM Sans', Georgia, serif; font-size: 0.88em; font-weight: 600; cursor: pointer; }
+  .calc-go:hover { background: var(--ink-light); }
+  .calc-result { max-height: 0; overflow: hidden; transition: max-height 0.3s; }
+  .calc-result.visible { max-height: 2000px; }
+  .calc-best { background: rgba(107, 83, 68, 0.08); border-left: 4px solid var(--soil); padding: 14px 18px; margin-bottom: 14px; border-radius: 0 6px 6px 0; font-size: 0.92em; line-height: 1.5; }
+  tr.net-best { background: rgba(107, 83, 68, 0.06); }
+  footer { background: var(--ink); color: #a09880; padding: 28px 24px; margin-top: 48px; font-size: 0.82em; }
+  footer .footer-inner { max-width: 1200px; margin: 0 auto; display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 20px; }
+  footer a { color: var(--wheat); text-decoration: none; }
+  footer .disclaimer { max-width: 600px; font-size: 0.88em; line-height: 1.5; font-style: italic; }
+  @media (max-width: 768px) { .header-top { flex-direction: column; } .header-meta { text-align: left; margin-top: 10px; } .hero-inner { flex-direction: column; } .hero-cta { width: 100%; } .cta-box { min-width: auto; } .stats-grid { grid-template-columns: repeat(2, 1fr); } .barn-grid { grid-template-columns: 1fr; } .container { padding: 16px; } .logo-area h1 { font-size: 1.5em; } .hero-text h2 { font-size: 1.2em; } table { font-size: 0.78em; } th, td { padding: 8px 10px; white-space: nowrap; } }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-top">
+    <div class="logo-area">
+      <h1>Barn<span>Signal</span></h1>
+      <div class="tagline">Your signal before the sale.</div>
+    </div>
+    <div class="header-meta">
+      <div><span class="live-dot"></span> Live data from ${BARNS.length + HAY_BARNS.length} USDA-reported auctions</div>
+      <div style="margin-top:4px;">${new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}</div>
+    </div>
+  </div>
+  <div class="tab-bar">
+    <div class="tab-bar-inner">
+      <a class="tab-link" href="/"><span class="tab-icon">&#x1F404;</span>Cattle</a>
+      <a class="tab-link active" href="/hay"><span class="tab-icon">&#x1F33E;</span>Hay &amp; Straw</a>
+    </div>
+  </div>
+</header>
+
+${renderHayTicker(activeBarns)}
+
+<section class="hero">
+  <div class="hero-inner">
+    <div class="hero-text">
+      <h2>Hay &amp; straw prices across Lancaster County &mdash; compared before you hitch the trailer.</h2>
+      <p>BarnSignal tracks per-ton hay and straw auction prices from USDA-reported sales at ${HAY_BARNS.length} auctions across Lancaster County. Cross-auction price comparison by bale type, net price calculator, and weekly trends.</p>
+      <p class="audience">Tracking ${activeBarns.reduce((s, b) => s + b.totalReceipts, 0).toLocaleString()}+ tons across ${HAY_BARNS.length} auctions this week. Built for hay buyers, livestock operations, and auction regulars.</p>
+    </div>
+    <div class="hero-cta">
+      <div class="cta-box">
+        <div class="cta-label">Get Hay Price Alerts</div>
+        <div style="font-size:0.82em; color:var(--ink-light); margin-bottom:10px; line-height:1.4;">Hay auction alerts from <strong>${HAY_BARNS.length} auctions</strong> on sale days.</div>
+        <input type="email" placeholder="your@email.com" id="cta-email" />
+        <button class="cta-btn" id="cta-btn" onclick="submitHaySignup()">Sign Up Free</button>
+        <div class="cta-note" id="cta-note">Auction-day alerts only. No spam.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="container">
+
+${renderHayStatsCards(activeBarns)}
+
+${renderHayCalculator(activeBarns)}
+
+<div class="section-header">
+  <h2>Cross-Auction Hay Price Comparison</h2>
+  <span class="source">Data: USDA AMS Market News</span>
+</div>
+${activeBarns.length >= 2 ? renderHayCrossComparison(activeBarns) : "<p style='color:var(--ink-muted);'>Collecting data from multiple auctions... cross-auction comparison will appear after the next auction cycle.</p>"}
+
+<div class="section-header">
+  <h2>Auction Reports by Bale Type</h2>
+  <span class="source">Most recent sale data</span>
+</div>
+<div class="barn-grid">
+${activeBarns.map((b) => renderHayBarnCard(b)).join("\n")}
+</div>
+
+${activeBarns.length === 0 ? `
+<div style="text-align:center; padding:3rem; color:var(--ink-muted);">
+  <h3>Waiting for first hay auction data...</h3>
+  <p>Hay auction data will appear after the next scheduled fetch (Mon/Tue/Wed evenings).</p>
+  <p style="margin-top:0.5rem;">Or trigger manually: <code>GET /api/fetch</code></p>
+</div>
+` : ""}
+
+</div>
+
+<footer>
+  <div class="footer-inner">
+    <div>
+      <strong style="color:var(--parchment);">BarnSignal</strong> v1.0<br>
+      Mid-Atlantic Hay &amp; Straw Price Intelligence<br>
+      <a href="/">Cattle Prices</a> | <a href="https://github.com/tharmer/barnsignal">GitHub</a>
+    </div>
+    <div class="disclaimer">
+      Data source: USDA AMS Livestock, Poultry &amp; Grain Market News.<br>
+      All prices shown are historical per-ton averages from completed sales and are not quotes, offers, or guarantees of future prices. Actual sale prices vary by hay quality, moisture content, bale weight, and buyer demand. BarnSignal is not liable for decisions made based on this data.
+    </div>
+  </div>
+</footer>
+
+<script>
+function submitHaySignup() {
+  var email = document.getElementById('cta-email').value.trim();
+  var btn = document.getElementById('cta-btn');
+  var note = document.getElementById('cta-note');
+  if (!email || email.indexOf('@') === -1) { note.textContent = 'Please enter a valid email address.'; note.style.color = 'var(--barn-red)'; return; }
+  btn.disabled = true; btn.textContent = 'Signing up...';
+  fetch('/api/signup', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: email, region: 'hay' }) })
+  .then(function(r) { return r.json(); })
+  .then(function(data) {
+    if (data.success) { btn.textContent = 'Signed Up'; note.textContent = data.message; note.style.color = 'var(--field-green)'; document.getElementById('cta-email').disabled = true; }
+    else { btn.textContent = 'Sign Up Free'; btn.disabled = false; note.textContent = data.error || 'Something went wrong.'; note.style.color = 'var(--barn-red)'; }
+  })
+  .catch(function() { btn.textContent = 'Sign Up Free'; btn.disabled = false; note.textContent = 'Network error. Try again.'; note.style.color = 'var(--barn-red)'; });
+}
+</script>
+
+</body>
+</html>`;
 }

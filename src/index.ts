@@ -2,7 +2,7 @@
 // Serves dashboard, API endpoints, and cron handlers
 
 import express from "express";
-import { renderDashboard } from "./dashboard.js";
+import { renderDashboard, renderHayDashboard } from "./dashboard.js";
 import { fetchAllBarns } from "./fetcher.js";
 import { generatePredictions, resolvePredictions } from "./predictor.js";
 import {
@@ -31,6 +31,19 @@ app.get("/", async (req, res) => {
     res.send(html);
   } catch (err) {
     console.error("Dashboard error:", err);
+    res.status(500).send(`<h1>BarnSignal Error</h1><pre>${(err as Error).message}</pre>`);
+  }
+});
+
+// ─── Hay Dashboard ───
+
+app.get("/hay", async (_req, res) => {
+  try {
+    const html = await renderHayDashboard();
+    res.setHeader("Content-Type", "text/html; charset=utf-8");
+    res.send(html);
+  } catch (err) {
+    console.error("Hay dashboard error:", err);
     res.status(500).send(`<h1>BarnSignal Error</h1><pre>${(err as Error).message}</pre>`);
   }
 });

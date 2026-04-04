@@ -153,6 +153,16 @@ export const HAY_BARNS: AuctionBarn[] = [
     categories: ["hay", "straw"],
     pdfUrl: "https://www.ams.usda.gov/mnreports/ams_1716.pdf",
   },
+  {
+    reportId: 1726,
+    name: "Kirkwood Hay Auction - Kirkwood, PA (Tuesday)",
+    shortName: "Kirkwood (Tue)",
+    location: "Kirkwood, PA",
+    lat: 39.8412, lng: -76.0663,
+    auctionDays: ["Tuesday"],
+    categories: ["hay", "straw"],
+    pdfUrl: "https://www.ams.usda.gov/mnreports/ams_1726.pdf",
+  },
 ];
 
 // Geographic regions — grouped by realistic hauling distance

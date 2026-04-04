@@ -237,7 +237,7 @@ export async function getFullArchive(): Promise<Record<number, AuctionEntry[]>> 
   const result: Record<number, AuctionEntry[]> = {};
 
   // Scan for all archive keys
-  const allBarns = [1908, 1909, 1916, 1917, 1918, 1920, 1870, 1872, 1880, 1974, 1919, 1725, 1716];
+  const allBarns = [1908, 1909, 1916, 1917, 1918, 1920, 1870, 1872, 1880, 1974, 1919, 1725, 1716, 1726];
   for (const id of allBarns) {
     const entries = await getArchive(id);
     if (entries.length > 0) {
