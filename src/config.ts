@@ -131,12 +131,29 @@ export const PA_WEEKLY_SUMMARY = {
   pdfUrl: "https://www.ams.usda.gov/mnreports/ams_1919.pdf",
 };
 
-// Hay auction for produce angle later
-export const HAY_AUCTION = {
-  reportId: 1725,
-  name: "Wolgemuth Hay Auction - Leola, PA",
-  pdfUrl: "https://www.ams.usda.gov/mnreports/ams_1725.pdf",
-};
+// Hay auctions — same USDA PDF pipeline, different parser
+export const HAY_BARNS: AuctionBarn[] = [
+  {
+    reportId: 1725,
+    name: "Wolgemuth Hay Auction - Leola, PA (Wednesday)",
+    shortName: "Wolgemuth (Wed)",
+    location: "Leola, PA",
+    lat: 40.0893, lng: -76.1833,
+    auctionDays: ["Wednesday"],
+    categories: ["hay", "straw"],
+    pdfUrl: "https://www.ams.usda.gov/mnreports/ams_1725.pdf",
+  },
+  {
+    reportId: 1716,
+    name: "Wolgemuth Hay Auction - New Holland, PA (Monday)",
+    shortName: "Wolgemuth NH (Mon)",
+    location: "New Holland, PA",
+    lat: 40.1012, lng: -76.0852,
+    auctionDays: ["Monday"],
+    categories: ["hay", "straw"],
+    pdfUrl: "https://www.ams.usda.gov/mnreports/ams_1716.pdf",
+  },
+];
 
 // Geographic regions — grouped by realistic hauling distance
 export interface Region {
@@ -184,4 +201,19 @@ export const TRACKED_CATEGORIES = [
   "BULLS - 1-2",
   "COWS - Breaker 75-80%",
   "COWS - Boner 80-85%",
+] as const;
+
+// Key hay/straw categories for tracking
+export const TRACKED_HAY_CATEGORIES = [
+  "Alfalfa - Premium",
+  "Alfalfa - Good",
+  "Alfalfa/Grass Mix - Premium",
+  "Alfalfa/Grass Mix - Good",
+  "Grass - Premium",
+  "Grass - Good",
+  "Grass - Fair",
+  "Orchard Grass - Good",
+  "Orchard/Timothy Grass - Good",
+  "Corn Stalk",
+  "Wheat Straw",
 ] as const;

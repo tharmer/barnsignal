@@ -1,7 +1,7 @@
 // BarnSignal — USDA PDF Fetcher & Parser
 // Fetches auction PDFs from ams.usda.gov and extracts structured price data
 
-import { BARNS, PA_WEEKLY_SUMMARY, type AuctionBarn } from "./config.js";
+import { BARNS, PA_WEEKLY_SUMMARY, HAY_BARNS, type AuctionBarn } from "./config.js";
 import { storeAuctionData, type AuctionEntry, type CategoryData } from "./redis.js";
 
 // pdf-parse is CJS, need dynamic import
@@ -284,6 +284,174 @@ function parseCategories(text: string): CategoryData[] {
   return categories;
 }
 
+// ─── Hay Report Parsing ───
+
+function parseHayCategories(text: string): CategoryData[] {
+  const categories: CategoryData[] = [];
+  let currentSection = "HAY";
+  let currentCategory = "";
+
+  const lines = text.split("\n");
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
+    if (!line) continue;
+
+    // Detect section switch
+    if (line.startsWith("Straw")) {
+      currentSection = "STRAW";
+      continue;
+    }
+    if (line.startsWith("Hay (") || line.startsWith("Hay Auction")) {
+      currentSection = "HAY";
+      continue;
+    }
+
+    // Match hay category headers like "Alfalfa - Premium  (Per Ton)"
+    const catMatch = line.match(/^(.+?)\s+\(Per Ton\)$/);
+    if (catMatch) {
+      currentCategory = catMatch[1].trim();
+      // For straw categories like "Corn Stalk -  (Per Ton)" or "Wheat -  (Per Ton)"
+      currentCategory = currentCategory.replace(/\s*-\s*$/, "");
+      if (currentSection === "STRAW" && currentCategory === "Wheat") {
+        currentCategory = "Wheat Straw";
+      } else if (currentSection === "STRAW" && currentCategory === "Corn Stalk") {
+        currentCategory = "Corn Stalk";
+      }
+      continue;
+    }
+
+    // Skip sub-headers
+    if (line.startsWith("Qty") || line.startsWith("Large") || line.startsWith("Small") || line.startsWith("Round")) {
+      // This might be a bale type line followed by data on the same line
+      // Format: "Large Square 3x413.66290.00-315.00305.92"
+      // or: "Large Square17.39150.00-190.00163.65"
+    }
+
+    if (!currentCategory) continue;
+
+    // Strip bale type prefix to get clean numeric data
+    // Lines look like: "Large Square 3x413.66290.00-315.00305.92"
+    let baleType = "Large Square";
+    let numericPart = line;
+
+    const baleMatch = line.match(/^(Large Square\s*3x4|Large Square|Small Square|Round Bale)\s*/i);
+    if (baleMatch) {
+      baleType = baleMatch[1].trim();
+      numericPart = line.slice(baleMatch[0].length);
+    }
+
+    if (!/^\d/.test(numericPart)) continue;
+
+    // Now parse: "13.66290.00-315.00305.92" (qty + range + avg)
+    // or: "3.38330.00330.00" (qty + single price + avg)
+    // or: "7.12220.00220.00" (qty + single price + avg)
+
+    // Range pattern: qty then low-high then avg
+    const rangeMatch = numericPart.match(/^(\d+\.?\d*?)(\d{2,3}\.\d{2})-(\d{2,3}\.\d{2})(\d{2,3}\.\d{2})/);
+    if (rangeMatch) {
+      const qty = parseFloat(rangeMatch[1]);
+      const priceLow = parseFloat(rangeMatch[2]);
+      const priceHigh = parseFloat(rangeMatch[3]);
+      const avgPrice = parseFloat(rangeMatch[4]);
+
+      if (avgPrice >= 50 && avgPrice <= 1000 && qty > 0 && qty < 500) {
+        categories.push({
+          category: currentCategory,
+          section: currentSection,
+          head: Math.round(qty),
+          wtRange: baleType,
+          avgWt: 0,
+          priceRange: `${priceLow.toFixed(2)}-${priceHigh.toFixed(2)}`,
+          avgPrice: avgPrice,
+          dressing: "Per Ton",
+        });
+        continue;
+      }
+    }
+
+    // Single price pattern: qty then price twice (same value)
+    const singleMatch = numericPart.match(/^(\d+\.?\d*?)(\d{2,3}\.\d{2})(\d{2,3}\.\d{2})$/);
+    if (singleMatch) {
+      const qty = parseFloat(singleMatch[1]);
+      const price1 = parseFloat(singleMatch[2]);
+      const price2 = parseFloat(singleMatch[3]);
+
+      if (price1 >= 50 && price1 <= 1000 && qty > 0 && qty < 500) {
+        categories.push({
+          category: currentCategory,
+          section: currentSection,
+          head: Math.round(qty),
+          wtRange: baleType,
+          avgWt: 0,
+          priceRange: price1.toFixed(2),
+          avgPrice: price2,
+          dressing: "Per Ton",
+        });
+      }
+    }
+  }
+
+  return categories;
+}
+
+function parseHayReceipts(text: string): { total: number; lastWeek: number; lastYear: number } {
+  const result = { total: 0, lastWeek: 0, lastYear: 0 };
+
+  // PDF concatenates columns: "Total132249258" means 132, 249, 258
+  // Hay totals are typically 2-4 digits each (tons, not head)
+  const totalMatch = text.match(/Total\s*(\d+)/);
+  if (totalMatch) {
+    const raw = totalMatch[1];
+    // Try splitting into three roughly equal parts
+    const len = raw.length;
+    // Each number is typically 2-3 digits for hay tonnage
+    const partLen = Math.ceil(len / 3);
+
+    // Try all reasonable splits and pick the one where numbers are most balanced
+    let bestSplit: [number, number, number] = [0, 0, 0];
+    let bestScore = Infinity;
+
+    for (let i = 1; i <= Math.min(4, len - 2); i++) {
+      for (let j = i + 1; j <= Math.min(i + 4, len - 1); j++) {
+        const a = parseInt(raw.slice(0, i));
+        const b = parseInt(raw.slice(i, j));
+        const c = parseInt(raw.slice(j));
+        if (isNaN(a) || isNaN(b) || isNaN(c)) continue;
+        // All should be reasonable tonnage values (1-999)
+        if (a < 1 || a > 999 || b < 1 || b > 999 || c < 1 || c > 999) continue;
+        // Prefer splits where digit counts are similar
+        const digitScore = Math.abs(i - (j - i)) + Math.abs((j - i) - (len - j));
+        if (digitScore < bestScore) {
+          bestScore = digitScore;
+          bestSplit = [a, b, c];
+        }
+      }
+    }
+
+    result.total = bestSplit[0];
+    result.lastWeek = bestSplit[1];
+    result.lastYear = bestSplit[2];
+  }
+
+  return result;
+}
+
+function parseHayReport(text: string): ParsedReport {
+  const reportDate = parseReportDate(text);
+  const receipts = parseHayReceipts(text);
+  const categories = parseHayCategories(text);
+
+  return {
+    reportDate,
+    totalReceipts: receipts.total,
+    lastWeekReceipts: receipts.lastWeek,
+    lastYearReceipts: receipts.lastYear,
+    categories,
+    marketCommentary: "", // hay reports don't include narrative commentary
+  };
+}
+
 function parseReport(text: string): ParsedReport {
   const reportDate = parseReportDate(text);
   const receipts = parseReceipts(text);
@@ -310,6 +478,31 @@ export async function fetchAndParseAuction(barn: AuctionBarn): Promise<AuctionEn
   const parsed = parseReport(pdf.text);
 
   console.log(`  📊 Date: ${parsed.reportDate}, Receipts: ${parsed.totalReceipts}, Categories: ${parsed.categories.length}`);
+
+  const entry: AuctionEntry = {
+    reportId: barn.reportId,
+    barnName: barn.shortName,
+    location: barn.location,
+    reportDate: parsed.reportDate,
+    fetchedAt: new Date().toISOString(),
+    totalReceipts: parsed.totalReceipts,
+    lastWeekReceipts: parsed.lastWeekReceipts,
+    lastYearReceipts: parsed.lastYearReceipts,
+    categories: parsed.categories,
+    marketCommentary: parsed.marketCommentary,
+  };
+
+  return entry;
+}
+
+export async function fetchAndParseHayAuction(barn: AuctionBarn): Promise<AuctionEntry> {
+  console.log(`🌾 Fetching ${barn.name}...`);
+  const pdfParse = await getPdfParse();
+  const buffer = await fetchPdf(barn.pdfUrl);
+  const pdf = await pdfParse(buffer);
+  const parsed = parseHayReport(pdf.text);
+
+  console.log(`  📊 Date: ${parsed.reportDate}, Tons: ${parsed.totalReceipts}, Categories: ${parsed.categories.length}`);
 
   const entry: AuctionEntry = {
     reportId: barn.reportId,
@@ -367,6 +560,18 @@ export async function fetchAllBarns(): Promise<AuctionEntry[]> {
     console.log(`  ✅ Stored PA Weekly Summary: ${parsed.categories.length} categories, ${parsed.totalReceipts} head`);
   } catch (err) {
     console.error(`  ❌ Failed to fetch PA Weekly Summary: ${(err as Error).message}`);
+  }
+
+  // Fetch hay auctions
+  for (const hayBarn of HAY_BARNS) {
+    try {
+      const entry = await fetchAndParseHayAuction(hayBarn);
+      await storeAuctionData(entry);
+      entries.push(entry);
+      console.log(`  ✅ Stored ${hayBarn.shortName}: ${entry.categories.length} categories, ${entry.totalReceipts} tons`);
+    } catch (err) {
+      console.error(`  ❌ Failed to fetch ${hayBarn.shortName}: ${(err as Error).message}`);
+    }
   }
 
   return entries;
