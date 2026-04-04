@@ -1693,10 +1693,12 @@ export async function renderHayDashboard(): Promise<string> {
     barnData.push(await getLatestAuction(barn.reportId));
   }
 
-  // Fetch hay predictions
+  // Fetch hay predictions — filter to hay barns and exclude stale predictions
   const allPredictions = await getAllPredictions(100);
   const hayReportIds = HAY_BARNS.map((b) => b.reportId);
-  const hayPredictions = allPredictions.filter((p) => hayReportIds.includes(p.reportId));
+  const hayPredictions = allPredictions.filter(
+    (p) => hayReportIds.includes(p.reportId) && p.targetDate >= cutoff
+  );
 
   // Filter out stale data — only show auctions with reports from the last 30 days
   const thirtyDaysAgo = new Date();
