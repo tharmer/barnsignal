@@ -42,7 +42,7 @@ export async function storeAuctionData(entry: AuctionEntry): Promise<void> {
   const r = getRedis();
   const key = `auction:${entry.reportId}:${entry.reportDate}`;
 
-  await r.set(key, JSON.stringify(entry), { ex: 60 * 60 * 24 * 90 }); // 90 day TTL
+  await r.set(key, JSON.stringify(entry)); // No TTL — this data is the asset
 
   // Also maintain a sorted set of dates per barn for history queries
   await r.zadd(`auction:${entry.reportId}:dates`, {
@@ -52,6 +52,15 @@ export async function storeAuctionData(entry: AuctionEntry): Promise<void> {
 
   // Latest pointer
   await r.set(`auction:${entry.reportId}:latest`, entry.reportDate);
+
+  // ─── Durable Archive ───
+  // Append to a per-barn archive list that never expires.
+  // Each entry is a complete snapshot — the raw material for the dataset.
+  // This is the insurance policy: even if hot keys get cleared, the archive survives.
+  await r.lpush(
+    `archive:${entry.reportId}`,
+    JSON.stringify({ archivedAt: new Date().toISOString(), ...entry })
+  );
 }
 
 export async function getLatestAuction(reportId: number): Promise<AuctionEntry | null> {
@@ -111,7 +120,7 @@ export interface Prediction {
 
 export async function storePrediction(pred: Prediction): Promise<void> {
   const r = getRedis();
-  await r.set(pred.id, JSON.stringify(pred), { ex: 60 * 60 * 24 * 180 }); // 180 day TTL
+  await r.set(pred.id, JSON.stringify(pred)); // No TTL — prediction track record is permanent
 
   // Unresolved predictions set
   if (!pred.resolved) {
@@ -146,7 +155,7 @@ export async function getUnresolvedPredictions(): Promise<Prediction[]> {
 
 export async function resolvePrediction(pred: Prediction): Promise<void> {
   const r = getRedis();
-  await r.set(pred.id, JSON.stringify(pred), { ex: 60 * 60 * 24 * 180 });
+  await r.set(pred.id, JSON.stringify(pred));
   await r.srem("predictions:unresolved", pred.id);
 }
 
@@ -210,6 +219,32 @@ export async function getAccuracyStats(): Promise<AccuracyStats> {
     byCategory,
     byBarn,
   };
+}
+
+// ─── Archive Export ───
+
+export async function getArchive(reportId: number): Promise<AuctionEntry[]> {
+  const r = getRedis();
+  const raw = await r.lrange<string>(`archive:${reportId}`, 0, -1);
+  return raw.map((item) => {
+    const parsed = typeof item === "string" ? JSON.parse(item) : item;
+    return parsed as AuctionEntry;
+  });
+}
+
+export async function getFullArchive(): Promise<Record<number, AuctionEntry[]>> {
+  const r = getRedis();
+  const result: Record<number, AuctionEntry[]> = {};
+
+  // Scan for all archive keys
+  const allBarns = [1908, 1909, 1916, 1917, 1918, 1920, 1870, 1872, 1880, 1974, 1919, 1725, 1716];
+  for (const id of allBarns) {
+    const entries = await getArchive(id);
+    if (entries.length > 0) {
+      result[id] = entries;
+    }
+  }
+  return result;
 }
 
 // ─── Email Signups ───

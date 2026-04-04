@@ -12,8 +12,10 @@ import {
   getAuctionHistory,
   storeEmailSignup,
   getSignupCount,
+  getArchive,
+  getFullArchive,
 } from "./redis.js";
-import { BARNS } from "./config.js";
+import { BARNS, HAY_BARNS } from "./config.js";
 
 const app = express();
 app.use(express.json());
@@ -228,13 +230,46 @@ app.get("/api/signup/count", async (_req, res) => {
 // ─── API: Barn locations for calculator ───
 
 app.get("/api/barns", (_req, res) => {
-  res.json(BARNS.map((b) => ({
+  const allBarns = [...BARNS, ...HAY_BARNS];
+  res.json(allBarns.map((b) => ({
     reportId: b.reportId,
     shortName: b.shortName,
     location: b.location,
     lat: b.lat,
     lng: b.lng,
+    categories: b.categories,
   })));
+});
+
+// ─── API: Archive (the dataset) ───
+
+app.get("/api/archive", async (_req, res) => {
+  try {
+    const archive = await getFullArchive();
+    const totalEntries = Object.values(archive).reduce((sum, entries) => sum + entries.length, 0);
+    res.json({
+      exportedAt: new Date().toISOString(),
+      totalEntries,
+      barns: Object.keys(archive).length,
+      data: archive,
+    });
+  } catch (err) {
+    res.status(500).json({ error: (err as Error).message });
+  }
+});
+
+app.get("/api/archive/:reportId", async (req, res) => {
+  try {
+    const reportId = parseInt(req.params.reportId);
+    const entries = await getArchive(reportId);
+    res.json({
+      reportId,
+      entries: entries.length,
+      data: entries,
+    });
+  } catch (err) {
+    res.status(500).json({ error: (err as Error).message });
+  }
 });
 
 // ─── SEO ───
