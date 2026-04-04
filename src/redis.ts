@@ -107,7 +107,7 @@ export interface Prediction {
   predictionDate: string;    // when prediction was made
   targetDate: string;        // the auction date we're predicting for
   currentAvgPrice: number;   // price when prediction was made
-  predictedDirection: "up" | "down" | "flat";
+  predictedDirection: "up" | "down" | "flat"; // "flat" kept for legacy compatibility
   predictedChangePercent: number;
   predictedPriceRange: string;
   confidence: number;        // 0-100

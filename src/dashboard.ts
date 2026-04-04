@@ -708,7 +708,7 @@ ${activeBarns.length >= 2 ? renderCrossAuctionComparison(activeBarns) : "<p>Coll
 
 <div class="section-header">
   <h2>AI Price Predictions</h2>
-  <span class="source">ML Random Forest + CME futures model</span>
+  <span class="source">ML Random Forest + CME + Cultural Calendar (binary up/down)</span>
 </div>
 ${renderPredictions(predictions)}
 
@@ -1942,7 +1942,7 @@ ${activeBarns.length >= 2 ? renderHayCrossComparison(activeBarns) : "<p style='c
 
 <div class="section-header">
   <h2>AI Hay Price Predictions</h2>
-  <span class="source">ML Random Forest + CME futures model</span>
+  <span class="source">ML Random Forest + CME + Cultural Calendar (binary up/down)</span>
 </div>
 ${renderHayPredictions(hayPredictions)}
 
