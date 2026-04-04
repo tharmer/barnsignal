@@ -1589,6 +1589,51 @@ function runHayCalc() {
 </script>`;
 }
 
+function renderHayPredictions(predictions: Prediction[]): string {
+  if (predictions.length === 0) {
+    return `<div style="background:var(--card-bg); border:1px solid var(--border); border-radius:8px; padding:24px; text-align:center; color:var(--ink-muted);">
+  <p><strong>&#x1F33E; Hay Price Predictions &mdash; Calibrating</strong></p>
+  <p style="margin-top:8px;">BarnSignal's hay prediction engine analyzes price momentum, tonnage supply changes, and seasonal cutting cycles. Predictions will appear after the next auction cycle.</p>
+</div>`;
+  }
+
+  const rows = predictions.slice(0, 30).map((p) => {
+    const arrow = p.predictedDirection === "up" ? "\u2191" : p.predictedDirection === "down" ? "\u2193" : "\u2192";
+    const trendClass = p.predictedDirection === "up" ? "trend-up" : p.predictedDirection === "down" ? "trend-down" : "trend-neutral";
+    const confColor = p.confidence > 60 ? "var(--field-green)" : p.confidence > 40 ? "var(--wheat)" : "var(--ink-muted)";
+
+    let statusBadge;
+    if (!p.resolved) {
+      statusBadge = `<span style="background:var(--parchment-dark);color:var(--ink-muted);padding:2px 8px;border-radius:10px;font-size:0.78em;">Pending</span>`;
+    } else if (p.correct) {
+      statusBadge = `<span style="background:rgba(58,107,53,0.12);color:var(--field-green);padding:2px 8px;border-radius:10px;font-size:0.78em;">\u2713 Correct</span>`;
+    } else {
+      statusBadge = `<span style="background:rgba(139,37,0,0.12);color:var(--barn-red);padding:2px 8px;border-radius:10px;font-size:0.78em;">\u2717 Wrong</span>`;
+    }
+
+    const actualCol = p.resolved
+      ? `$${p.actualAvgPrice?.toFixed(2)}/ton`
+      : "\u2014";
+
+    return `<tr>
+      <td>${p.barnName}</td>
+      <td class="category-cell">${p.category}</td>
+      <td class="price-cell">$${p.currentAvgPrice.toFixed(2)}</td>
+      <td class="${trendClass}" style="font-weight:600">${arrow} ${p.predictedDirection}</td>
+      <td><div style="display:inline-block;width:60px;height:8px;background:var(--parchment-dark);border-radius:4px;overflow:hidden;vertical-align:middle;margin-right:6px;"><div style="width:${p.confidence}%;height:100%;background:${confColor};border-radius:4px;"></div></div>${p.confidence}%</td>
+      <td>${p.targetDate}</td>
+      <td class="price-cell">${actualCol}</td>
+      <td>${statusBadge}</td>
+    </tr>`;
+  });
+
+  return `<div class="price-table-wrap"><table>
+<tr><th>Auction</th><th>Category</th><th>Current $/Ton</th><th>Call</th><th>Confidence</th><th>Target Date</th><th>Actual</th><th>Status</th></tr>
+${rows.join("\n")}
+</table></div>
+<p style="font-size:0.78em; color:var(--ink-muted); margin-top:8px; font-style:italic;">Predictions based on price momentum, tonnage supply trends, 3-week moving averages, and seasonal cutting-cycle patterns. Not financial advice.</p>`;
+}
+
 function renderHayStatsCards(barns: AuctionEntry[]): string {
   const totalTons = barns.reduce((sum, b) => sum + b.totalReceipts, 0);
   const totalCategories = barns.reduce((sum, b) => sum + b.categories.length, 0);
@@ -1647,6 +1692,11 @@ export async function renderHayDashboard(): Promise<string> {
   for (const barn of HAY_BARNS) {
     barnData.push(await getLatestAuction(barn.reportId));
   }
+
+  // Fetch hay predictions
+  const allPredictions = await getAllPredictions(100);
+  const hayReportIds = HAY_BARNS.map((b) => b.reportId);
+  const hayPredictions = allPredictions.filter((p) => hayReportIds.includes(p.reportId));
 
   // Filter out stale data — only show auctions with reports from the last 30 days
   const thirtyDaysAgo = new Date();
@@ -1743,6 +1793,9 @@ export async function renderHayDashboard(): Promise<string> {
   .calc-result.visible { max-height: 2000px; }
   .calc-best { background: rgba(107, 83, 68, 0.08); border-left: 4px solid var(--soil); padding: 14px 18px; margin-bottom: 14px; border-radius: 0 6px 6px 0; font-size: 0.92em; line-height: 1.5; }
   tr.net-best { background: rgba(107, 83, 68, 0.06); }
+  .trend-up { color: var(--field-green); }
+  .trend-down { color: var(--barn-red); }
+  .trend-neutral { color: var(--ink-muted); }
   footer { background: var(--ink); color: #a09880; padding: 28px 24px; margin-top: 48px; font-size: 0.82em; }
   footer .footer-inner { max-width: 1200px; margin: 0 auto; display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 20px; }
   footer a { color: var(--wheat); text-decoration: none; }
@@ -1819,6 +1872,12 @@ ${activeBarns.length === 0 ? `
   <p style="margin-top:0.5rem;">Or trigger manually: <code>GET /api/fetch</code></p>
 </div>
 ` : ""}
+
+<div class="section-header">
+  <h2>AI Hay Price Predictions</h2>
+  <span class="source">Rule-based + seasonal model</span>
+</div>
+${renderHayPredictions(hayPredictions)}
 
 </div>
 
