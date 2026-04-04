@@ -708,7 +708,7 @@ ${activeBarns.length >= 2 ? renderCrossAuctionComparison(activeBarns) : "<p>Coll
 
 <div class="section-header">
   <h2>AI Price Predictions</h2>
-  <span class="source">Rule-based signal engine</span>
+  <span class="source">ML Random Forest + CME futures model</span>
 </div>
 ${renderPredictions(predictions)}
 
@@ -1631,10 +1631,81 @@ function renderHayPredictions(predictions: Prediction[]): string {
 <tr><th>Auction</th><th>Category</th><th>Current $/Ton</th><th>Call</th><th>Confidence</th><th>Target Date</th><th>Actual</th><th>Status</th></tr>
 ${rows.join("\n")}
 </table></div>
-<p style="font-size:0.78em; color:var(--ink-muted); margin-top:8px; font-style:italic;">Predictions based on price momentum, tonnage supply trends, 3-week moving averages, and seasonal cutting-cycle patterns. Not financial advice.</p>`;
+<p style="font-size:0.78em; color:var(--ink-muted); margin-top:8px; font-style:italic;">ML predictions powered by Random Forest classifier with 21 features: price momentum, mean reversion, CME futures basis, supply dynamics, and seasonal cutting-cycle patterns. Not financial advice.</p>`;
 }
 
-function renderHayStatsCards(barns: AuctionEntry[]): string {
+function renderHayAccuracy(predictions: Prediction[]): string {
+  const resolved = predictions.filter((p) => p.resolved);
+  const correct = resolved.filter((p) => p.correct);
+
+  if (resolved.length === 0) {
+    return `<div style="background:var(--card-bg); border:1px solid var(--border); border-radius:8px; padding:24px; text-align:center; color:var(--ink-muted);">
+  <p><strong>Accuracy tracking will begin once predictions are resolved against actual auction data.</strong></p>
+  <p style="margin-top:8px;">This typically takes 1\u20132 auction cycles.</p>
+</div>`;
+  }
+
+  const accuracy = Math.round((correct.length / resolved.length) * 100);
+
+  // By category
+  const byCat: Record<string, { total: number; correct: number }> = {};
+  const byBarn: Record<string, { total: number; correct: number }> = {};
+  for (const p of resolved) {
+    if (!byCat[p.category]) byCat[p.category] = { total: 0, correct: 0 };
+    byCat[p.category].total++;
+    if (p.correct) byCat[p.category].correct++;
+
+    if (!byBarn[p.barnName]) byBarn[p.barnName] = { total: 0, correct: 0 };
+    byBarn[p.barnName].total++;
+    if (p.correct) byBarn[p.barnName].correct++;
+  }
+
+  const catRows = Object.entries(byCat)
+    .sort((a, b) => b[1].total - a[1].total)
+    .map(([cat, s]) => {
+      const acc = Math.round((s.correct / s.total) * 100);
+      return `<tr><td class="category-cell">${cat}</td><td>${s.total}</td><td>${s.correct}</td><td class="price-cell">${acc}%</td></tr>`;
+    }).join("\n");
+
+  const barnRows = Object.entries(byBarn)
+    .map(([barn, s]) => {
+      const acc = Math.round((s.correct / s.total) * 100);
+      return `<tr><td class="category-cell">${barn}</td><td>${s.total}</td><td>${s.correct}</td><td class="price-cell">${acc}%</td></tr>`;
+    }).join("\n");
+
+  return `
+<div class="stats-grid" style="grid-template-columns: repeat(3, 1fr);">
+  <div class="stat-card">
+    <div class="stat-label">Overall Accuracy</div>
+    <div class="stat-value" style="color:var(--field-green);">${accuracy}%</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Resolved / Total</div>
+    <div class="stat-value">${resolved.length}/${predictions.length}</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Correct</div>
+    <div class="stat-value" style="color:var(--field-green);">${correct.length}</div>
+  </div>
+</div>
+
+${catRows ? `
+<h3 style="margin: 1rem 0 0.5rem; color: var(--ink); font-weight:600;">By Category</h3>
+<div class="price-table-wrap"><table>
+<tr><th>Category</th><th>Predictions</th><th>Correct</th><th>Accuracy</th></tr>
+${catRows}
+</table></div>` : ""}
+
+${barnRows ? `
+<h3 style="margin: 1rem 0 0.5rem; color: var(--ink); font-weight:600;">By Auction</h3>
+<div class="price-table-wrap"><table>
+<tr><th>Auction</th><th>Predictions</th><th>Correct</th><th>Accuracy</th></tr>
+${barnRows}
+</table></div>` : ""}
+`;
+}
+
+function renderHayStatsCards(barns: AuctionEntry[], hayPredictions: Prediction[]): string {
   const totalTons = barns.reduce((sum, b) => sum + b.totalReceipts, 0);
   const totalCategories = barns.reduce((sum, b) => sum + b.categories.length, 0);
 
@@ -1644,6 +1715,12 @@ function renderHayStatsCards(barns: AuctionEntry[]): string {
 
   const avgHayPrice = hayOnly.length > 0 ? hayOnly.reduce((s, c) => s + c.avgPrice, 0) / hayOnly.length : 0;
   const avgStrawPrice = strawOnly.length > 0 ? strawOnly.reduce((s, c) => s + c.avgPrice, 0) / strawOnly.length : 0;
+
+  // Compute hay-specific accuracy from resolved predictions
+  const resolved = hayPredictions.filter((p) => p.resolved);
+  const correct = resolved.filter((p) => p.correct);
+  const accuracy = resolved.length > 0 ? Math.round((correct.length / resolved.length) * 100) : 0;
+  const totalPreds = hayPredictions.length;
 
   return `
 <div class="stats-grid">
@@ -1664,8 +1741,12 @@ function renderHayStatsCards(barns: AuctionEntry[]): string {
     <div class="stat-value">${avgStrawPrice > 0 ? "$" + avgStrawPrice.toFixed(0) : "\u2014"}</div>
   </div>
   <div class="stat-card">
-    <div class="stat-label">Categories</div>
-    <div class="stat-value">${totalCategories}</div>
+    <div class="stat-label">AI Accuracy</div>
+    <div class="stat-value ${accuracy >= 50 ? "green" : accuracy > 0 ? "" : ""}">${totalPreds > 0 ? accuracy + "%" : "\u2014"}</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Predictions</div>
+    <div class="stat-value">${totalPreds}</div>
   </div>
 </div>`;
 }
@@ -1849,7 +1930,7 @@ ${renderHayTicker(activeBarns)}
 
 <div class="container">
 
-${renderHayStatsCards(activeBarns)}
+${renderHayStatsCards(activeBarns, hayPredictions)}
 
 ${renderHayCalculator(activeBarns)}
 
@@ -1858,6 +1939,18 @@ ${renderHayCalculator(activeBarns)}
   <span class="source">Data: USDA AMS Market News</span>
 </div>
 ${activeBarns.length >= 2 ? renderHayCrossComparison(activeBarns) : "<p style='color:var(--ink-muted);'>Collecting data from multiple auctions... cross-auction comparison will appear after the next auction cycle.</p>"}
+
+<div class="section-header">
+  <h2>AI Hay Price Predictions</h2>
+  <span class="source">ML Random Forest + CME futures model</span>
+</div>
+${renderHayPredictions(hayPredictions)}
+
+<div class="section-header">
+  <h2>Prediction Accuracy</h2>
+  <span class="source">Running track record</span>
+</div>
+${renderHayAccuracy(hayPredictions)}
 
 <div class="section-header">
   <h2>Auction Reports by Bale Type</h2>
@@ -1874,12 +1967,6 @@ ${activeBarns.length === 0 ? `
   <p style="margin-top:0.5rem;">Or trigger manually: <code>GET /api/fetch</code></p>
 </div>
 ` : ""}
-
-<div class="section-header">
-  <h2>AI Hay Price Predictions</h2>
-  <span class="source">Rule-based + seasonal model</span>
-</div>
-${renderHayPredictions(hayPredictions)}
 
 </div>
 
