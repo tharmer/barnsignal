@@ -1,7 +1,7 @@
 {
   "name": "barnsignal",
   "version": "1.0.0",
-  "description": "Cross-auction livestock price intelligence for Lancaster County PA and beyond",
+  "description": "Mid-Atlantic livestock auction price intelligence — PA, MD, WV, NY and beyond",
   "type": "module",
   "scripts": {
     "build": "tsc",
@@ -26,3 +26,4 @@
     "typescript": "^5.9.3"
   }
 }
+
