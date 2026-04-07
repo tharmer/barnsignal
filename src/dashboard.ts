@@ -1,4 +1,4 @@
-// BarnSignal â Dashboard HTML Generator
+// BarnSignal Ã¢ÂÂ Dashboard HTML Generator
 
 import { BARNS, REGIONS, HAY_BARNS } from "./config.js";
 import {
@@ -26,9 +26,10 @@ export async function renderDashboard(activeRegion: string = "all"): Promise<str
   const predictions = await getAllPredictions(50);
   const globalStats = await getAccuracyStats();
 
-  // Compute cattle-only accuracy (exclude hay barn predictions)
+  // Compute cattle-only accuracy using full prediction set (200, matching getAccuracyStats)
   const hayReportIds = HAY_BARNS.map((b) => b.reportId);
-  const cattlePredictions = predictions.filter((p) => !hayReportIds.includes(p.reportId));
+  const allPredictions = await getAllPredictions(200);
+  const cattlePredictions = allPredictions.filter((p) => !hayReportIds.includes(p.reportId));
   const cattleResolved = cattlePredictions.filter((p) => p.resolved);
   const cattleCorrect = cattleResolved.filter((p) => p.correct);
   const stats: AccuracyStats = {
@@ -48,15 +49,15 @@ export async function renderDashboard(activeRegion: string = "all"): Promise<str
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BarnSignal â Mid-Atlantic Livestock Auction Prices &amp; Trends</title>
+<title>BarnSignal Ã¢ÂÂ Mid-Atlantic Livestock Auction Prices &amp; Trends</title>
 <meta name="description" content="Compare livestock auction prices across Pennsylvania, Maryland, Virginia, West Virginia, and New York. Real-time USDA data from 12 auction barns, AI price predictions, and cross-auction comparison.">
 <meta name="keywords" content="livestock auction prices, cattle prices, New Holland auction, Lancaster County livestock, USDA market news, feeder cattle prices, slaughter cattle, auction barn prices, mid-Atlantic livestock">
-<meta property="og:title" content="BarnSignal â Know Before You Go">
+<meta property="og:title" content="BarnSignal Ã¢ÂÂ Know Before You Go">
 <meta property="og:description" content="Cross-auction livestock price comparison from 12 USDA-reported barns across PA, MD, VA, WV, and NY. Free price alerts and AI predictions.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://barnsignal.com">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="BarnSignal â Mid-Atlantic Livestock Prices">
+<meta name="twitter:title" content="BarnSignal Ã¢ÂÂ Mid-Atlantic Livestock Prices">
 <meta name="twitter:description" content="Compare auction prices across 12 barns. Real-time USDA data, AI predictions, and price alerts.">
 <link rel="canonical" href="https://barnsignal.com">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -90,7 +91,7 @@ export async function renderDashboard(activeRegion: string = "all"): Promise<str
     line-height: 1.6;
   }
 
-  /* ââ Header ââ */
+  /* Ã¢ÂÂÃ¢ÂÂ Header Ã¢ÂÂÃ¢ÂÂ */
   header {
     background: var(--ink);
     color: var(--parchment);
@@ -134,7 +135,7 @@ export async function renderDashboard(activeRegion: string = "all"): Promise<str
     0%, 100% { opacity: 1; }
     50% { opacity: 0.4; }
   }
-  /* ââ Ticker ââ */
+  /* Ã¢ÂÂÃ¢ÂÂ Ticker Ã¢ÂÂÃ¢ÂÂ */
   .ticker {
     background: #1a1610;
     padding: 10px 0;
@@ -162,7 +163,7 @@ export async function renderDashboard(activeRegion: string = "all"): Promise<str
     100% { transform: translateX(-50%); }
   }
 
-  /* ââ Region Filter ââ */
+  /* Ã¢ÂÂÃ¢ÂÂ Region Filter Ã¢ÂÂÃ¢ÂÂ */
   .region-bar {
     background: var(--parchment-dark);
     border-bottom: 1px solid var(--border);
@@ -209,10 +210,10 @@ export async function renderDashboard(activeRegion: string = "all"): Promise<str
     border-color: var(--ink);
   }
 
-  /* ââ Container ââ */
+  /* Ã¢ÂÂÃ¢ÂÂ Container Ã¢ÂÂÃ¢ÂÂ */
   .container { max-width: 1200px; margin: 0 auto; padding: 24px; }
 
-  /* ââ Hero ââ */
+  /* Ã¢ÂÂÃ¢ÂÂ Hero Ã¢ÂÂÃ¢ÂÂ */
   .hero {
     background: var(--card-bg);
     border-bottom: 1px solid var(--border);
@@ -300,7 +301,7 @@ export async function renderDashboard(activeRegion: string = "all"): Promise<str
     margin-top: 6px;
   }
 
-  /* ââ Alert Banner ââ */
+  /* Ã¢ÂÂÃ¢ÂÂ Alert Banner Ã¢ÂÂÃ¢ÂÂ */
   .alert-banner {
     background: var(--card-bg);
     border: 1px solid var(--wheat);
@@ -317,7 +318,7 @@ export async function renderDashboard(activeRegion: string = "all"): Promise<str
   .alert-banner .alert-text strong { color: var(--barn-red); }
   .alert-banner .alert-time { font-size: 0.78em; color: var(--ink-muted); margin-top: 4px; }
 
-  /* ââ Section Headers ââ */
+  /* Ã¢ÂÂÃ¢ÂÂ Section Headers Ã¢ÂÂÃ¢ÂÂ */
   .section-header {
     display: flex;
     justify-content: space-between;
@@ -338,7 +339,7 @@ export async function renderDashboard(activeRegion: string = "all"): Promise<str
     font-style: italic;
   }
 
-  /* ââ Stats Grid ââ */
+  /* Ã¢ÂÂÃ¢ÂÂ Stats Grid Ã¢ÂÂÃ¢ÂÂ */
   .stats-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -375,7 +376,7 @@ export async function renderDashboard(activeRegion: string = "all"): Promise<str
   .stat-card .stat-value.green { color: var(--field-green); }
   .stat-card .stat-value.red { color: var(--barn-red); }
 
-  /* ââ Price Tables ââ */
+  /* Ã¢ÂÂÃ¢ÂÂ Price Tables Ã¢ÂÂÃ¢ÂÂ */
   .price-table-wrap {
     background: var(--card-bg);
     border: 1px solid var(--border);
@@ -411,7 +412,7 @@ export async function renderDashboard(activeRegion: string = "all"): Promise<str
   .trend-down { color: var(--barn-red); }
   .trend-neutral { color: var(--ink-muted); }
 
-  /* ââ Badges ââ */
+  /* Ã¢ÂÂÃ¢ÂÂ Badges Ã¢ÂÂÃ¢ÂÂ */
   .badge {
     display: inline-block;
     padding: 2px 8px;
@@ -424,7 +425,7 @@ export async function renderDashboard(activeRegion: string = "all"): Promise<str
   .badge-pending { background: #f0ead8; color: var(--soil); border: 1px solid var(--border); }
   .badge-watch { background: #e4eef5; color: var(--sky); border: 1px solid #b0c8d8; }
 
-  /* ââ Insight Cards ââ */
+  /* Ã¢ÂÂÃ¢ÂÂ Insight Cards Ã¢ÂÂÃ¢ÂÂ */
   .insights-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
@@ -462,7 +463,7 @@ export async function renderDashboard(activeRegion: string = "all"): Promise<str
   }
   .confidence-fill { height: 100%; border-radius: 2px; }
 
-  /* ââ Commentary ââ */
+  /* Ã¢ÂÂÃ¢ÂÂ Commentary Ã¢ÂÂÃ¢ÂÂ */
   .commentary {
     background: var(--card-bg);
     border: 1px solid var(--border);
@@ -476,7 +477,7 @@ export async function renderDashboard(activeRegion: string = "all"): Promise<str
   .commentary strong { color: var(--ink); }
   .commentary .comm-date { color: var(--ink-muted); font-size: 0.85em; }
 
-  /* ââ Barn Cards ââ */
+  /* Ã¢ÂÂÃ¢ÂÂ Barn Cards Ã¢ÂÂÃ¢ÂÂ */
   .barn-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
@@ -500,15 +501,15 @@ export async function renderDashboard(activeRegion: string = "all"): Promise<str
   .barn-card-header h3 { font-size: 1rem; font-weight: 600; }
   .barn-card-header .meta { font-size: 0.8rem; opacity: 0.85; }
 
-  /* ââ Predictions Table ââ */
+  /* Ã¢ÂÂÃ¢ÂÂ Predictions Table Ã¢ÂÂÃ¢ÂÂ */
   .pred-up { background: #f0f7ee; }
   .pred-down { background: #fdf2ef; }
   .pred-flat { background: #f5f2e8; }
 
-  /* ââ Best Price ââ */
+  /* Ã¢ÂÂÃ¢ÂÂ Best Price Ã¢ÂÂÃ¢ÂÂ */
   .best-price { background: #e8f5e3; font-weight: 600; }
 
-  /* ââ Net Price Calculator ââ */
+  /* Ã¢ÂÂÃ¢ÂÂ Net Price Calculator Ã¢ÂÂÃ¢ÂÂ */
   .calc-box {
     background: var(--card-bg);
     border: 2px solid var(--wheat);
@@ -584,7 +585,7 @@ export async function renderDashboard(activeRegion: string = "all"): Promise<str
   .calc-best strong { color: white; }
   .net-best { background: #e8f5e3; font-weight: 700; }
 
-  /* ââ Footer ââ */
+  /* Ã¢ÂÂÃ¢ÂÂ Footer Ã¢ÂÂÃ¢ÂÂ */
   footer {
     background: var(--ink);
     color: #a09880;
@@ -609,7 +610,7 @@ export async function renderDashboard(activeRegion: string = "all"): Promise<str
     font-style: italic;
   }
 
-  /* ââ Tab Navigation ââ */
+  /* Ã¢ÂÂÃ¢ÂÂ Tab Navigation Ã¢ÂÂÃ¢ÂÂ */
   .tab-bar {
     background: var(--ink);
     border-top: 1px solid rgba(255,255,255,0.08);
@@ -639,7 +640,7 @@ export async function renderDashboard(activeRegion: string = "all"): Promise<str
   }
   .tab-link .tab-icon { margin-right: 6px; }
 
-  /* ââ Responsive ââ */
+  /* Ã¢ÂÂÃ¢ÂÂ Responsive Ã¢ÂÂÃ¢ÂÂ */
   @media (max-width: 768px) {
     .header-top { flex-direction: column; }
     .header-meta { text-align: left; margin-top: 10px; }
@@ -1368,9 +1369,9 @@ ${barnRows}
 `;
 }
 
-// âââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂ
 // HAY DASHBOARD
-// âââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂ
 
 function renderHayCrossComparison(barns: AuctionEntry[]): string {
   const categoryMap = new Map<string, { barn: string; avgPrice: number; qty: number; baleType: string }[]>();
@@ -1836,12 +1837,12 @@ export async function renderHayDashboard(): Promise<string> {
     barnData.push(await getLatestAuction(barn.reportId));
   }
 
-  // Filter out stale data â only show auctions with reports from the last 30 days
+  // Filter out stale data Ã¢ÂÂ only show auctions with reports from the last 30 days
   const thirtyDaysAgo = new Date();
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
   const cutoff = thirtyDaysAgo.toISOString().split("T")[0];
 
-  // Fetch hay predictions â filter to hay barns and exclude stale predictions
+  // Fetch hay predictions Ã¢ÂÂ filter to hay barns and exclude stale predictions
   const allPredictions = await getAllPredictions(100);
   const hayReportIds = HAY_BARNS.map((b) => b.reportId);
   const hayPredictions = allPredictions.filter(
@@ -1857,9 +1858,9 @@ export async function renderHayDashboard(): Promise<string> {
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BarnSignal â Hay &amp; Straw Auction Prices | Lancaster County PA</title>
+<title>BarnSignal Ã¢ÂÂ Hay &amp; Straw Auction Prices | Lancaster County PA</title>
 <meta name="description" content="Compare hay and straw auction prices across Lancaster County PA. Per-ton pricing by bale type from Wolgemuth and Kirkwood hay auctions. USDA data, updated weekly.">
-<meta property="og:title" content="BarnSignal â Hay & Straw Prices">
+<meta property="og:title" content="BarnSignal Ã¢ÂÂ Hay & Straw Prices">
 <meta property="og:description" content="Cross-auction hay price comparison from USDA-reported auctions in Lancaster County PA. Per-ton pricing by bale type.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://barnsignal.com/hay">
@@ -2068,9 +2069,9 @@ function submitHaySignup() {
 </html>`;
 }
 
-// âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-// /accuracy â Track Record Page
-// âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂ
+// /accuracy Ã¢ÂÂ Track Record Page
+// Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂ
 
 export async function renderAccuracyPage(): Promise<string> {
   const predictions = await getAllPredictions(200);
@@ -2149,7 +2150,7 @@ export async function renderAccuracyPage(): Promise<string> {
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BarnSignal â Track Record | Model Accuracy &amp; Backtest Results</title>
+<title>BarnSignal Ã¢ÂÂ Track Record | Model Accuracy &amp; Backtest Results</title>
 <meta name="description" content="BarnSignal's AI prediction track record. See live accuracy, historical backtest results, and feature importance for our livestock price prediction model.">
 <link rel="canonical" href="https://barnsignal.com/accuracy">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -2278,7 +2279,7 @@ export async function renderAccuracyPage(): Promise<string> {
   </div>
 </div>
 
-<!-- ââ Backtest Results ââ -->
+<!-- Ã¢ÂÂÃ¢ÂÂ Backtest Results Ã¢ÂÂÃ¢ÂÂ -->
 <div class="section-header">
   <h2>Backtest Results</h2>
   <span class="source">Walk-forward validation, scikit-learn, 9 barns, 3+ years of data</span>
@@ -2363,7 +2364,7 @@ export async function renderAccuracyPage(): Promise<string> {
 
 <p style="font-size:0.78em; color:var(--ink-muted); margin-top:8px; font-style:italic;">The biggest single improvement (+16pp) came from switching to binary up/down labels, eliminating ambiguous &ldquo;flat&rdquo; predictions. Cultural calendar and drought features added another +1pp. Production model uses Random Forest Binary + Cultural Calendar (JS compatible).</p>
 
-<!-- ââ Feature Importance ââ -->
+<!-- Ã¢ÂÂÃ¢ÂÂ Feature Importance Ã¢ÂÂÃ¢ÂÂ -->
 <div class="section-header">
   <h2>What Drives the Predictions</h2>
   <span class="source">Feature importance from best backtest config (Config F)</span>
@@ -2385,7 +2386,7 @@ export async function renderAccuracyPage(): Promise<string> {
 </table>
 </div>
 
-<!-- ââ Methodology ââ -->
+<!-- Ã¢ÂÂÃ¢ÂÂ Methodology Ã¢ÂÂÃ¢ÂÂ -->
 <div class="section-header">
   <h2>Methodology</h2>
   <span class="source">How it works</span>
@@ -2411,7 +2412,7 @@ export async function renderAccuracyPage(): Promise<string> {
 </div>
 
 ${resolved.length > 0 ? `
-<!-- ââ Live Resolution Log ââ -->
+<!-- Ã¢ÂÂÃ¢ÂÂ Live Resolution Log Ã¢ÂÂÃ¢ÂÂ -->
 <div class="section-header">
   <h2>Resolved Predictions</h2>
   <span class="source">${resolved.length} predictions scored against actual auction data</span>
@@ -2443,7 +2444,7 @@ ${resolvedRows}
 </table>
 </div>
 ` : `
-<!-- ââ No resolved yet ââ -->
+<!-- Ã¢ÂÂÃ¢ÂÂ No resolved yet Ã¢ÂÂÃ¢ÂÂ -->
 <div class="section-header">
   <h2>Live Resolution Log</h2>
   <span class="source">Predictions scored against actual auction data</span>
@@ -2456,7 +2457,7 @@ ${resolvedRows}
 `}
 
 ${pending.length > 0 ? `
-<!-- ââ Pending Predictions ââ -->
+<!-- Ã¢ÂÂÃ¢ÂÂ Pending Predictions Ã¢ÂÂÃ¢ÂÂ -->
 <div class="section-header">
   <h2>Pending Predictions</h2>
   <span class="source">${pending.length} predictions awaiting resolution</span>
