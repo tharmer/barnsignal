@@ -733,7 +733,7 @@ ${activeBarns.length >= 2 ? renderCrossAuctionComparison(activeBarns) : "<p>Coll
   <span class="source">ML Random Forest + CME + Cultural Calendar (binary up/down)</span>
 </div>
 ${renderAccuracyBadge(stats)}
-${renderPredictions(predictions)}
+${renderPredictions(predictions.filter((p) => !hayReportIds.includes(p.reportId) && p.targetDate >= cutoff))}
 
 <div class="section-header">
   <h2 id="barn-heading">${activeRegion === "all" ? "Auction Barn Reports" : regionLabel + " Auction Reports"}</h2>
@@ -1283,7 +1283,7 @@ function renderPredictions(predictions: Prediction[]): string {
   }
 
   // Filter out legacy "flat" predictions from old 3-class model
-  const filtered = predictions.filter((p) => p.predictedDirection !== "flat" && !hayReportIds.includes(p.reportId) && p.targetDate >= cutoff);
+  const filtered = predictions.filter((p) => p.predictedDirection !== "flat");
   const rows = filtered.slice(0, 30).map((p) => {
     const dirClass = p.predictedDirection === "up" ? "pred-up" : "pred-down";
     const arrow = p.predictedDirection === "up" ? "\u2191" : "\u2193";
