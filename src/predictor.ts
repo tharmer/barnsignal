@@ -1,7 +1,10 @@
 // BarnSignal — AI Prediction Engine (ML + CME Futures + Cultural Calendar + Drought)
 // Random Forest classifier with binary labels (up/down) + 33 features
 // Features: 15 price/supply + 6 CME + 12 cultural calendar
-// Backtest: 56.2% cattle (binary), 56.7% hay — up from 40.1% cattle (3-class)
+// Backtest (binary, ±0.5% dead zone, walk-forward):
+//   21 features (CME only): 59.0% overall (55.3% cattle, 64.3% hay)
+//   33 features (CME + cultural): 59.8% overall (56.8% cattle, 64.0% hay)
+//   Cultural calendar features: +0.8pp (neutral — not statistically significant)
 
 import { RandomForestClassifier } from "ml-random-forest";
 import { BARNS, HAY_BARNS, TRACKED_CATEGORIES, TRACKED_HAY_CATEGORIES } from "./config.js";
@@ -619,6 +622,16 @@ export async function resolvePredictions(): Promise<{ resolved: number; correct:
 
     const actualChange =
       ((actualCat.avgPrice - pred.currentAvgPrice) / pred.currentAvgPrice) * 100;
+
+    // Skip resolution if actual move is within the ±0.5% ambiguous zone
+    // (matches the training threshold — model never learned near-zero moves)
+    if (Math.abs(actualChange) <= 0.5) {
+      console.log(
+        `  ⏸️ ${pred.barnName} ${pred.category}: actual change ${actualChange.toFixed(2)}% within dead zone, skipping`,
+      );
+      continue;
+    }
+
     // Binary resolution: did the price go up or down?
     const actualDirection: "up" | "down" = actualChange > 0 ? "up" : "down";
 
