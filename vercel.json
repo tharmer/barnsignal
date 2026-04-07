@@ -1,17 +1,11 @@
 {
-  "buildCommand": "npm run build",
-  "installCommand": "npm install",
-  "builds": [
-    {
-      "src": "dist/index.js",
-      "use": "@vercel/node",
-      "config": {
-        "maxDuration": 120
-      }
+  "functions": {
+    "api/index.ts": {
+      "maxDuration": 120
     }
-  ],
-  "routes": [
-    { "src": "/(.*)", "dest": "dist/index.js" }
+  },
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/api" }
   ],
   "crons": [
     {
@@ -24,4 +18,3 @@
     }
   ]
 }
-
